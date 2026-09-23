@@ -35,7 +35,7 @@
 | # | 機能 | 区分 | 状態 | 依存 | 一言 |
 |---|---|---|---|---|---|
 | 0 | [アプリ基盤](./000-app-basic.md) | MVP | 完了 | — | 個人アカウントの認証、退会、規約と Cookie の同意、メール、メンテナンス表示 |
-| 1 | [候補名の一括チェックと商標照合](./001-trademark-batch-check.md) | MVP | 未着手 | 000-app-basic | 複数候補を一括実行し、商標の同一・称呼類似を比較表に示す |
+| 1 | [候補名の一括チェックと商標照合](./001-trademark-batch-check.md) | MVP | 完了 | 000-app-basic | 複数候補を一括実行し、商標の同一・称呼類似を比較表に示す |
 | 2 | [Google 検索の使用状況チェック](./002-google-search-check.md) | MVP | 未着手 | 000-app-basic, 001-trademark-batch-check | Google の上位結果と「該当あり／なし」の目安を比較表に加える |
 | 3 | [ドメイン・SNS の空き確認](./003-domain-sns-check.md) | MVP | 未着手 | 000-app-basic, 001-trademark-batch-check | 選んだ TLD の空きと SNS の使用状況（YouTube は自動、X・Instagram・TikTok はリンク）を比較表に加える |
 | 4 | [チェック履歴の管理](./004-check-history.md) | MVP | 未着手 | 000-app-basic, 001-trademark-batch-check | 過去のチェックを本人だけが見返し、削除できる |
