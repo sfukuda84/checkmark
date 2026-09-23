@@ -1,6 +1,6 @@
 # チェック履歴の管理
 
-**状態**: 未着手 | **区分**: MVP | **想定順序**: 4 | **依存**: 001-trademark-batch-check
+**状態**: 未着手 | **区分**: MVP | **想定順序**: 4 | **依存**: 000-app-basic, 001-trademark-batch-check
 
 ## 概要
 
