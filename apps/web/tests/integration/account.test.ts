@@ -1,5 +1,20 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { account, authEvents, consents, eq, outboundEmails, session, user, verification } from "@app/db";
+import {
+  account,
+  authEvents,
+  checkCandidates,
+  checks,
+  consents,
+  eq,
+  outboundEmails,
+  session,
+  trademarkResults,
+  usageCounters,
+  user,
+  verification,
+} from "@app/db";
+import { recordingSender } from "../helpers/checks";
+import { startCheck } from "@/checks/start-check";
 import { MINUTE } from "@app/shared/time";
 import { reauthenticateWithPassword } from "@/auth/reauth";
 import { Browser, createTestAuth, signUpAndVerify } from "../helpers/auth-harness";
@@ -87,11 +102,25 @@ describe("メールアドレスの変更と退会（US4）", () => {
     await t.db
       .insert(verification)
       .values({ id: "v-1", identifier: "reset-password:x", value: u!.id, expiresAt: new Date(Date.now() + 60_000) });
+    // 001: チェック、候補、結果、利用回数も消える（FR-033、NFR-DA-004）
+    const started = await startCheck(t.db, recordingSender().sender, {
+      userId: u!.id,
+      input: "秘密の候補",
+      classes: [],
+      now: new Date(),
+    });
+    if (!started.ok) throw new Error("チェックを作れなかった");
+    const [cand] = await t.db.select().from(checkCandidates);
+    await t.db.insert(trademarkResults).values({ candidateId: cand!.id, outcome: "none" });
     staleSession();
     await reauthenticateWithPassword(t.auth, t.db, b.headers(), PASSWORD, t.clock);
     const r = await b.request("POST", "/delete-user", {});
     expect(r.status).toBe(200);
     expect(await t.db.select().from(user)).toHaveLength(0);
+    expect(await t.db.select().from(checks)).toHaveLength(0);
+    expect(await t.db.select().from(checkCandidates)).toHaveLength(0);
+    expect(await t.db.select().from(trademarkResults)).toHaveLength(0);
+    expect(await t.db.select().from(usageCounters)).toHaveLength(0);
     expect(await t.db.select().from(session)).toHaveLength(0);
     expect(await t.db.select().from(account)).toHaveLength(0);
     expect(await t.db.select().from(consents)).toHaveLength(0);

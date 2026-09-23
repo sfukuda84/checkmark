@@ -8,6 +8,8 @@ export const QUEUES = {
   pruneAuthEvents: "prune-auth-events",
   pruneOutboundEmails: "prune-outbound-emails",
   pruneRateLimitBuckets: "prune-rate-limit-buckets",
+  trademarkCheck: "trademark-check",
+  expireTrademarkChecks: "expire-trademark-checks",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -33,6 +35,15 @@ export const QUEUE_OPTIONS: Record<QueueName, QueueOptionsLike> = {
   [QUEUES.pruneAuthEvents]: { retryLimit: 2, retryDelay: 300, deleteAfterSeconds: 604_800 },
   [QUEUES.pruneOutboundEmails]: { retryLimit: 2, retryDelay: 300, deleteAfterSeconds: 604_800 },
   [QUEUES.pruneRateLimitBuckets]: { retryLimit: 2, retryDelay: 60, deleteAfterSeconds: 86_400 },
+  // 商標の照合（001 research R5）。1 回の試行は 30 秒で打ち切り、5 秒後に 1 回だけ再試行する。
+  [QUEUES.trademarkCheck]: {
+    retryLimit: 1,
+    retryDelay: 5,
+    retryBackoff: false,
+    expireInSeconds: 30,
+    deleteAfterSeconds: 86_400,
+  },
+  [QUEUES.expireTrademarkChecks]: { retryLimit: 1, retryDelay: 30, deleteAfterSeconds: 86_400 },
 };
 
 interface QueueCreator {

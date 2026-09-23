@@ -2,7 +2,7 @@ import pino, { type DestinationStream, type Logger } from "pino";
 
 /**
  * ログに残してはならない項目のキー（小文字で比較する）。
- * NFR-SE-004 と憲章 II により、パスワード・トークン・セッション・メールアドレス・候補名を伏せる。
+ * NFR-SE-004 と憲章 II により、パスワード・トークン・セッション・メールアドレス・候補名・読み・商標の文字を伏せる。
  */
 const SENSITIVE_KEYS = new Set([
   "password",
@@ -22,6 +22,11 @@ const SENSITIVE_KEYS = new Set([
   "to",
   "candidate",
   "candidates",
+  "inputtext",
+  "normalizedtext",
+  "reading",
+  "userreading",
+  "marktext",
   "secret",
   "apikey",
 ]);

@@ -85,3 +85,36 @@ export async function dismissCookieBanner(page: Page) {
 export function formAlert(page: Page) {
   return page.locator('[role="alert"]:not(#__next-route-announcer__)');
 }
+
+/** 新しい利用者で登録してログインし、トップ画面を開く。 */
+export async function signInAsNewUser(page: Page, prefix: string): Promise<string> {
+  const email = uniqueEmail(prefix);
+  await signUpAndVerify(page, email);
+  await page.goto("/");
+  await dismissCookieBanner(page);
+  return email;
+}
+
+/** 候補を入力してチェックを実行し、結果画面に移るのを待つ。 */
+export async function runCheck(page: Page, candidates: string[], classes: number[] = []) {
+  await page.goto("/checks/new");
+  await page.getByLabel(/名前の候補/).fill(candidates.join("\n"));
+  if (classes.length > 0) {
+    await page.getByText("区分の一覧と説明を開く").click();
+    for (const c of classes) await page.getByLabel(new RegExp(`^第 ${c} 類:`)).check();
+  }
+  await page.getByRole("button", { name: "チェックする" }).click();
+  await expect(page).toHaveURL(/\/checks\/[0-9a-f-]{36}/);
+}
+
+/** 比較表の候補の行。 */
+export function candidateRow(page: Page, name: string) {
+  return page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: new RegExp(`^${name}`) }) });
+}
+
+/** 日本時間の今月（YYYY-MM）。 */
+export function currentPeriod(): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit" }).format(
+    new Date(),
+  );
+}

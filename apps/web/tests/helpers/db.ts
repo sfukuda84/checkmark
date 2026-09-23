@@ -12,6 +12,8 @@ export function testDb(): Database {
 export async function resetDb(): Promise<void> {
   await testDb().execute(sql`
     truncate table
+      trademark_results, check_candidates, checks, usage_counters, app_settings,
+      trademark_readings, trademark_marks, trademark_datasets,
       auth_events, consents, outbound_emails, rate_limit_buckets, rate_limit,
       verification, account, session, "user"
     restart identity cascade

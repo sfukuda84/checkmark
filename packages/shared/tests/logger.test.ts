@@ -48,6 +48,25 @@ describe("createLogger", () => {
     expect(out).toContain("[REDACTED]");
   });
 
+  it("候補名、読み、商標の文字を伏せる（001 FR-031、research R9）", () => {
+    const { stream, lines } = capture();
+    const logger = createLogger({ level: "info", destination: stream });
+    logger.info(
+      {
+        candidateId: "c-1",
+        inputText: "未公開の名前",
+        normalizedText: "ミコウカイ",
+        reading: "ミコウカイノナマエ",
+        userReading: "ヒミツ",
+        markText: "既存の商標",
+      },
+      "照合",
+    );
+    const out = lines.join("");
+    for (const secret of ["未公開の名前", "ミコウカイ", "ヒミツ", "既存の商標"]) expect(out).not.toContain(secret);
+    expect(out).toContain("c-1");
+  });
+
   it("URL のクエリにあるトークンを伏せる", () => {
     const { stream, lines } = capture();
     const logger = createLogger({ level: "info", destination: stream });

@@ -1,0 +1,22 @@
+{
+  "name": "@app/importer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import": "tsx src/cli.ts import",
+    "seed-fixture": "tsx src/cli.ts seed-fixture",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  },
+  "dependencies": {
+    "@app/db": "workspace:*",
+    "@app/shared": "workspace:*",
+    "@app/trademark": "workspace:*"
+  },
+  "exports": {
+    "./testing": "./src/testing.ts"
+  }
+}
