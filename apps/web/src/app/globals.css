@@ -119,3 +119,15 @@ td {
   text-align: left;
   vertical-align: top;
 }
+.site-footer {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 8rem;
+  border-top: 1px solid var(--border);
+}
+.site-footer nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}

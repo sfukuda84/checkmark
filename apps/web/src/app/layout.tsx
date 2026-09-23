@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { CookieBanner } from "@/components/cookie-banner";
+import { SiteFooter } from "@/components/site-footer";
 import { COOKIE_CONSENT_COOKIE, parseCookieConsent } from "@/legal/cookie-consent";
 import "./globals.css";
 
@@ -16,6 +17,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="ja">
       <body>
         <main className="container">{children}</main>
+        <SiteFooter />
         <CookieBanner initiallyChosen={chosen} />
       </body>
     </html>

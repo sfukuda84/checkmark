@@ -303,3 +303,14 @@ Task: "T027 apps/web/content/legal/ と legal/registry.ts"
   - SC-007: T008
   - SC-008: T016
   - SC-001〜SC-003: 利用時の指標であり、作るものがないため、タスクの対象外とする（quickstart の手動確認で見る）
+
+---
+
+## Phase 10: Convergence
+
+**Purpose**: `speckit-converge`（S9）で見つかった、実装と仕様の差を埋める
+
+- [x] T063 [US5] すべての画面の下部に、利用規約、プライバシーポリシー、Cookie の設定（`/legal/cookies`）へのリンクを置く。`apps/web/src/components/site-footer.tsx`（FR-021「同意の選択はあとから変えられる」への導線）
+- [x] T064 Better Auth が出すログを、`packages/shared` の pino のロガー（伏せ字つき）に流す。先に `apps/web/tests/unit/auth-logger.test.ts` で、メールアドレスとトークンが伏せられることを確かめる（FR-030、NFR-SE-004）
+- [x] T065 [US1] `apps/web/tests/integration/session-lifetime.test.ts`: ログイン状態の有効期限が、作成から 30 日であること（FR-008a）
+- [x] T066 [P] `packages/shared/tests/queues.test.ts`: `send-email` のキューが 2 分ごとに 15 回再送し、完了したジョブを 1 日で消す設定であること（SC-008、research R8）

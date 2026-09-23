@@ -14,7 +14,7 @@ test("US5: 旧版だけに同意した利用者は、同意の画面を経て使
 
   await page.goto("/");
   await expect(page).toHaveURL(/\/consent/);
-  await expect(page.getByRole("link", { name: /利用規約/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /利用規約（.*版）/ })).toBeVisible();
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical")).toEqual([]);
   await page.getByRole("button", { name: "同意して続ける" }).click();
@@ -32,4 +32,11 @@ test("US5: 初回の訪問で Cookie の同意を求め、選んだら表示し�
   await expect(banner).toBeHidden();
   const cookies = await page.context().cookies();
   expect(cookies.find((c) => c.name === "cookie_consent")?.value).toBe("essential");
+
+  // 選択はあとから変えられる（FR-021）
+  await page.getByRole("link", { name: "Cookie の設定" }).click();
+  await page.getByRole("button", { name: "すべて許可する" }).click();
+  await expect(page.getByRole("status")).toContainText("すべて許可");
+  const after = await page.context().cookies();
+  expect(after.find((c) => c.name === "cookie_consent")?.value).toBe("all");
 });

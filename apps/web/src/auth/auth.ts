@@ -10,6 +10,7 @@ import type { EmailEnqueuer } from "@/jobs/client";
 import type { PwnedPasswordChecker } from "./pwned";
 import type { AccountRateLimiter } from "./rate-limit";
 import { createHooks } from "./hooks";
+import { toBetterAuthLogger } from "./logger";
 
 export interface AuthDeps {
   db: Database;
@@ -111,7 +112,7 @@ export function createAuth(deps: AuthDeps) {
     },
     hooks: { before: hooks.before, after: hooks.after },
     plugins: [nextCookies()],
-    logger: { level: env.NODE_ENV === "test" ? "error" : "warn" },
+    logger: toBetterAuthLogger(logger, env.NODE_ENV === "test" ? "error" : "warn"),
   });
 }
 
