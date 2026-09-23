@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+coverage/
+pnpm-lock.yaml
+packages/db/migrations/
+specs/
+docs/
+skills/
+.claude/
+.agents/
+.kiro/
+.specify/
+.opencode/
+*.md

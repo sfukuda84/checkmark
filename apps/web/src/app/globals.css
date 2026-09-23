@@ -1,0 +1,133 @@
+:root {
+  --fg: #1a1a1a;
+  --muted: #555;
+  --bg: #ffffff;
+  --accent: #0b57d0;
+  --danger: #b3261e;
+  --border: #c7c7c7;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Hiragino Sans",
+    "Noto Sans JP",
+    sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  line-height: 1.7;
+}
+.container {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 6rem;
+}
+h1 {
+  font-size: 1.5rem;
+}
+label {
+  display: block;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-weight: 400;
+}
+button,
+.button {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+}
+button.secondary,
+.button.secondary {
+  background: #fff;
+  color: var(--accent);
+}
+button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid #f4b400;
+  outline-offset: 2px;
+}
+.error {
+  color: var(--danger);
+  font-weight: 600;
+}
+.notice {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #f6f8fc;
+}
+.muted {
+  color: var(--muted);
+}
+.cookie-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1rem;
+  background: #fff;
+  border-top: 1px solid var(--border);
+}
+.cookie-banner .inner {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+th,
+td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+.site-footer {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 8rem;
+  border-top: 1px solid var(--border);
+}
+.site-footer nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
