@@ -40,7 +40,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 
 - [ ] T005 `packages/db/src/schema/trademarks.ts` に `trademark_datasets`、`trademark_marks`、`trademark_readings` を data-model.md §1〜3 のとおり定義する
 - [ ] T006 `packages/db/src/schema/checks.ts` に `checks`、`check_candidates`、`trademark_results`、`usage_counters`、`app_settings` を data-model.md §4〜8 のとおり定義する（`user_id` は ON DELETE CASCADE）
-- [ ] T007 マイグレーションを作る（`pnpm db:generate`）。`create extension if not exists pg_trgm` と、`reading_key` の GIN（gin_trgm_ops）索引と btree（text_pattern_ops）索引、`classes` の GIN 索引を手で足す。`packages/db/migrations/`
+- [ ] T007 マイグレーションを作る（`pnpm db:generate`）。`create extension if not exists pg_trgm` と、`reading_key` の GIN（gin_trgm_ops）索引と btree（text_pattern_ops）索引、`classes` の GIN 索引を手で足す。`packages/db/migrations/`。あわせて、テストの `resetDb` に新しいテーブルを足す（`apps/web/tests/helpers/db.ts`、worker と importer のテストの共通の準備）
 - [ ] T008 [P] 正規化と入力の検証のテストを書く。NFKC、ひらがな→カタカナ、小文字化、空白、使える文字、50 文字、読みの検証（research R2、FR-003、FR-004、FR-004a）。`packages/trademark/tests/normalize.test.ts`
 - [ ] T009 [P] 入力欄の解析のテストを書く。空行、`候補名 / ヨミ`、重複のまとめと件数、行番号つきのエラー。`packages/trademark/tests/parse-input.test.ts`
 - [ ] T010 [P] 仮名のテストを書く。モーラへの分割（拗音、促音、長音）、称呼キー（research R4）。`packages/trademark/tests/kana.test.ts`
@@ -76,7 +76,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 - [ ] T027 [P] [US1] 読みの推定のテストを書く。利用者の読み、仮名だけの候補、既存商標の称呼の流用、漢字（kuromoji）、ローマ字、大文字の略語、数字、読みが空になる場合（research R3、FR-014）。`packages/trademark/tests/reading.test.ts`
 - [ ] T028 [P] [US1] `PgTrademarkSource` の結合テストを書く。同一、称呼の trigram 抽出、短いキーの補助の抽出、区分の重なり（検証用データを取り込んだ DB）。`apps/worker/tests/pg-trademark-source.test.ts`
 - [ ] T029 [P] [US1] 照合のジョブの結合テストを書く。結果の写し、基準日、`done` への遷移、退会済み・attempt 違いの無視、データなしで `unknown`、SC-003（同一 100%）と SC-004（類似 90% 以上）の検証用データでの確認、ログに候補名が出ないこと。`apps/worker/tests/trademark-check.test.ts`
-- [ ] T030 [P] [US1] 実行の結合テストを書く。解析と検証のエラー、10 件の上限、チェックと候補の作成、ジョブの登録、登録の失敗で `unknown`。`apps/web/tests/integration/start-check.test.ts`
+- [ ] T030 [P] [US1] 実行の結合テストを書く。解析と検証のエラー、10 件の上限（FR-002）、チェックと候補の作成（FR-007）、ジョブの登録、登録の失敗で `unknown`。`apps/web/tests/integration/start-check.test.ts`
 - [ ] T031 [P] [US1] 認可の結合テストを書く。他人のチェックの読み出しが見つからない、運営者でも見えない（FR-030、SC-005）。`apps/web/tests/integration/check-authorization.test.ts`
 
 ### Implementation for User Story 1
@@ -90,7 +90,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 - [ ] T038 [US1] 入力画面を作る（候補の入力欄、実行）。`apps/web/src/app/(app)/checks/new/page.tsx`、`check-form.tsx`
 - [ ] T039 [US1] 比較表の列の定義と商標の列を作る（research R7、FR-018）。`apps/web/src/checks/columns.tsx`
 - [ ] T040 [US1] 結果画面を作る（比較表、該当商標の一覧、公式サービスへのリンク、読みと推定の表示、免責、基準日、30 日超の注意）。`apps/web/src/app/(app)/checks/[id]/page.tsx`（FR-011〜FR-016、FR-015a）
-- [ ] T041 [US1] E2E を書く。検証用データを global-setup で取り込み、3 件の候補を実行して比較表の結果、免責、基準日、axe の検査を確かめる。`apps/web/tests/e2e/checks-us1.spec.ts`、`apps/web/tests/e2e/global-setup.ts`
+- [ ] T041 [US1] E2E を書く。検証用データを global-setup で取り込み、3 件の候補を実行して比較表の結果、免責、基準日、axe の検査を確かめる。入力から比較表の画面に移るまでの時間（SC-001）と、画面の応答時間（SC-009）を計測する。`apps/web/tests/e2e/checks-us1.spec.ts`、`apps/web/tests/e2e/global-setup.ts`
 
 **Checkpoint**: US1 だけで、一括チェックと商標の比較表が使える
 
@@ -102,7 +102,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 
 **Independent Test**: 第 9 類だけを選び、該当が第 9 類を含む商標だけになることを確かめる
 
-- [ ] T042 [P] [US2] 区分の絞り込みの結合テストを書く（選んだ区分、区分なし＝全区分、不正な区分）。`apps/worker/tests/trademark-check-classes.test.ts`、`apps/web/tests/integration/start-check.test.ts` に追加
+- [ ] T042 [P] [US2] 区分の絞り込みの結合テストを書く（選んだ区分、区分なし＝全区分、不正な区分。FR-005、FR-010）。`apps/worker/tests/trademark-check-classes.test.ts`、`apps/web/tests/integration/start-check.test.ts` に追加
 - [ ] T043 [US2] 入力画面に区分の選択（説明つき、既定は全区分）を足し、`startCheck` で区分を検証して保存する。`apps/web/src/app/(app)/checks/new/class-picker.tsx`
 - [ ] T044 [US2] 結果画面に選んだ区分（または「全区分」）を示す。`apps/web/src/app/(app)/checks/[id]/page.tsx`
 - [ ] T045 [US2] E2E に区分の絞り込みを足す。`apps/web/tests/e2e/checks-us2.spec.ts`
@@ -130,7 +130,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 
 **Independent Test**: 失敗させた候補が「不明」になり、やり直すと結果が出ることを確かめる
 
-- [ ] T052 [P] [US4] やり直しの結合テストを書く（`unknown` だけ、attempt と期限の更新、ジョブの登録、他人の候補は `NOT_FOUND`、結果のある候補は `NOT_RETRYABLE`、最後の試行の失敗で `unknown`）。`apps/web/tests/integration/retry-candidate.test.ts`、`apps/worker/tests/trademark-check.test.ts` に追加
+- [ ] T052 [P] [US4] やり直しの結合テストを書く（`unknown` だけ、attempt と期限の更新、ジョブの登録、他人の候補は `NOT_FOUND`、結果のある候補は `NOT_RETRYABLE`、最後の試行の失敗で `unknown`、一部の候補が失敗してもほかの候補は `done` になる（FR-023、SC-008））。`apps/web/tests/integration/retry-candidate.test.ts`、`apps/worker/tests/trademark-check.test.ts` に追加
 - [ ] T053 [US4] T052 を通す実装を書く。`apps/web/src/checks/retry.ts`、Server Action `retryCandidate`
 - [ ] T054 [US4] 結果画面の「不明」のセルにやり直しのボタンを出す。`apps/web/src/checks/columns.tsx`
 - [ ] T055 [US4] 推定した読みの候補に、読みを添えてチェックし直す導線（`/checks/new?from=<id>`）を足す（FR-014a）。`apps/web/src/app/(app)/checks/new/page.tsx`
@@ -144,7 +144,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 **Independent Test**: 残り 3 件で 5 件を実行できないこと、失敗分が戻ることを確かめる
 
 - [ ] T056 [P] [US5] 期間と残りの計算の単体テストを書く（日本時間の暦月、月末の境界、次に戻る日時、上限値の既定 50 と設定値）。`apps/web/tests/unit/usage.test.ts`
-- [ ] T057 [P] [US5] 利用回数の結合テストを書く（数える、超えたら `QUOTA_EXCEEDED`、同時の実行で超えない、実行中 3 件で `TOO_MANY_RUNNING`、`unknown` で戻る、二重に戻さない、やり直しで数える）。`apps/web/tests/integration/usage.test.ts`
+- [ ] T057 [P] [US5] 利用回数の結合テストを書く（FR-026、FR-026a、FR-027、FR-027a。数える、超えたら `QUOTA_EXCEEDED`、同時の実行で超えない、実行中 3 件で `TOO_MANY_RUNNING`、`unknown` で戻る、二重に戻さない、やり直しで数える）。`apps/web/tests/integration/usage.test.ts`
 - [ ] T058 [US5] T056 と T057 を通す実装を書く。`apps/web/src/checks/usage.ts`、`start-check.ts` と `retry.ts` へのロックと数え方、worker の戻し（`apps/worker/src/jobs/refund.ts`）
 - [ ] T059 [US5] 入力画面とトップに残りと戻る日時を出し、残り 0 件なら実行できないようにする。`apps/web/src/app/(app)/checks/new/page.tsx`、`apps/web/src/app/(app)/page.tsx`
 - [ ] T060 [US5] E2E を書く（残りの表示、超えたときのエラー）。`apps/web/tests/e2e/checks-us5.spec.ts`
@@ -154,7 +154,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 - [ ] T061 [P] 退会で、チェック、候補、結果、利用回数が消えることの結合テストを書く（FR-033、NFR-DA-004）。`apps/web/tests/integration/account.test.ts` に追加
-- [ ] T062 [P] テストの `resetDb` に新しいテーブルを足す。`apps/web/tests/helpers/db.ts`、worker と importer のテストの共通の準備
+- [ ] T062 [P] 照合、実行、やり直し、期限切れのログを取り込み、候補名と読みが 1 件も出ないことを確かめる結合テストを書く（SC-006、FR-031）。`apps/worker/tests/log-redaction.test.ts`
 - [ ] T063 [P] 照合の所要時間を結合テストで計測し、検証用データで 1 候補 30 秒以内であることを確かめる（SC-002）。`apps/worker/tests/trademark-check.test.ts`
 - [ ] T064 [P] 比較表のスマートフォンでの表示（横スクロール）と、フォームのラベルを整える（NFR-UX-002、NFR-UX-003）。`apps/web/src/app/globals.css`
 - [ ] T065 `.env.example` と README に、検証用データの取り込みの手順を足す
