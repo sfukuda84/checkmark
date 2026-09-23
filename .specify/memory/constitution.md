@@ -1,50 +1,83 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# ネーミングチェッカー Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. 仕様駆動開発
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- 新しい機能と振る舞いの変更は、必ず `spec.md` → `plan.md` → `tasks.md` を作ってから実装する（MUST）。
+- 仕様に書くのは「何を・なぜ」であり、技術的な選択は `plan.md` に書く（MUST）。
+- 曖昧な点は推測で埋めない。`[NEEDS CLARIFICATION: ...]` として明示し、`speckit-clarify` かユーザーへの確認で解消する（MUST）。
+- 実装中に仕様の誤りや不足が見つかったら、コードと同時に `spec.md` / `plan.md` / `tasks.md` も直す（MUST）。
+- 応答と成果物（仕様、コードコメント、コミットメッセージ、PR）は日本語で書く。規則は `.kiro/steering/language.md` に従う（MUST）。
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+理由: 仕様を正本にすると、複数のエージェントで進めても判断の根拠が 1 か所にそろう。
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. 候補名の機密性（NON-NEGOTIABLE）
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+- 利用者が入力した候補名とチェックの結果は、本人だけが閲覧でき、本人がいつでも削除できる（MUST）。
+- 運営者向けの画面、ログ、エラー通知、分析のデータに、個別の候補名を出さない（MUST）。集計値（件数など）は出してよい。
+- 外部サービスへの送信は、チェックに必要な情報（候補名、選んだ TLD など）に限る。利用者のメールアドレスなどの識別情報は送らない（MUST）。
+- 削除したチェックの候補名と結果は、アプリの DB から復元できない形で消す（MUST）。バックアップからは保持期間の経過で消える。その期間は `docs/nfr.md` に定める。
+- 他人のチェックを参照できないことを、認可のテストで確かめる（MUST）。
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+理由: 候補名は、公開前の商品名や社名といった機密情報になりうる。漏えいすると、利用者の事業に直接の損害を与える。
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. 外部サービスの規約を守り、差し替えられるようにする
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- 利用規約で禁止された自動取得をしない（MUST）。具体的には、J-PlatPat の画面の自動取得と、SNS のプロフィールへの自動アクセスをしない。使ってよい取得手段は `docs/architecture.md` §2.1 に定める。
+- 外部サービスへの問い合わせは、サービスごとのアダプタの内側に閉じる。アダプタは、取得元を差し替えても呼び出し側を変えずに済む形にする（MUST）。
+- 外部 API の呼び出しには、タイムアウト、再試行の上限、結果のキャッシュ、利用回数の上限を設ける（MUST）。費用が件数に比例する API には、月の支出の上限を設ける。
+- 外部サービスの失敗は、チェック全体の失敗にしない。該当する項目を「不明」として示し、やり直せるようにする（MUST）。
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+理由: このサービスの価値は外部データの組み合わせにある。一方で、どの取得元も規約、価格、提供の継続に不確実さがある。
+
+### IV. 結果を誤認させない
+
+- 商標の照合結果には、「簡易チェック」であって登録できるかの法的判断ではないことを、結果と同じ画面に示す（MUST）。
+- 「該当なし」「空き」とは断定しない。判定の根拠（どの取得元をいつ調べたか）と、判定できない場合があることを示す（MUST）。
+- 保存した結果を再表示するときは、調べた時点の結果であることと、その日時を示す（MUST）。
+
+理由: 利用者は結果を名付けの判断に使う。取り違えると、商標トラブルなどの実害につながる。
+
+### V. ドメインのロジックはテストファースト
+
+- 業務ロジックは、先に失敗するテストを書いてから実装する（MUST）。対象は、商標の照合（同一、称呼の類似、区分）、Web 検索の一致の判定、ドメインと SNS の判定、利用回数の上限、認可である。Red → Green → Refactor の順に進める。
+- 外部 API はアダプタの境界でモックし、ネットワークに依存しないテストにする（MUST）。アダプタそのものは、記録した応答を使う契約テストで確かめる（SHOULD）。
+- 画面は、主要な利用者の流れを E2E テスト（Playwright）で確かめる（MUST）。流れは、一括チェックの実行、比較表の表示、履歴の再表示と削除である。
+- テスト、型検査、リンターが通らない変更は `main` にマージしない（MUST）。
+
+理由: 判定の誤りは利用者の判断を直接誤らせる。外部に依存する処理は、手で確かめると再現しにくい。
+
+### VI. シンプルさと費用の意識
+
+- 技術スタックと構成は `docs/architecture.md` に従う（MUST）。変える場合は、`plan.md` で独自に決めず、先に `speckit-architecture` の見直しを経る。
+- すべての機能は `docs/nfr.md` の横断要件を満たす（MUST）。満たしていることを、`plan.md` の憲章チェックで確かめる。
+- 新しいサービス、ミドルウェア、依存ライブラリを足すときは、`plan.md` に理由と月額費用への影響を書く（MUST）。MVP の月額予算（`docs/architecture.md` §5）を超える変更は、見直しの条件に従う。
+- 必要になるまで作らない（YAGNI）。backlog の候補（`docs/concept/backlog.md`）を、機能化せずに先回りして実装しない（SHOULD）。
+
+理由: MVP は月 5,000 円以内で、開発者が兼任で運用する。複雑さと費用は、そのまま運用の負荷になる。
+
+## 技術と非機能の制約
+
+- **技術スタック**: TypeScript、Next.js（App Router）、PostgreSQL、Drizzle ORM、Better Auth、pg-boss、Docker Compose を VPS 上で動かす。詳細と理由は `docs/architecture.md` を正本とする。
+- **非機能要件**: 可用性、性能、セキュリティ、データの保持、費用の目標は `docs/nfr.md` を正本とする。運用基盤（監視、バックアップ、CI/CD）は `docs/feature/999-app-nfr.md` で実装する。
+- **共通基盤**: 認証、アカウント、メール送信、利用規約への同意、運営者向け管理画面は `docs/feature/000-app-basic.md` で実装する。各機能はこれを再実装しない。
+- **秘密情報**: API キーなどの秘密情報を、リポジトリ、ログ、クライアントに送るコードに含めない。
+
+## 開発フローと品質ゲート
+
+- 機能は `docs/feature/spec_order.md` の順に、`speckit-feature` / `speckit-coding` / `speckit-all` で 1 件ずつ進める。作業は feature ブランチ（worktree）で行い、`main` へは `--no-ff` でマージする。
+- `plan.md` の憲章チェック（Constitution Check）では、原則 I〜VI と `docs/nfr.md` への適合を項目ごとに確かめる。違反を認める場合は、理由と代替案を Complexity Tracking に書く。
+- マージの前に、`speckit-review` の 2 軸（Standards と Spec）でレビューし、指摘を解消する。
+- CI（GitHub Actions）で、リンター、型検査、単体テスト、E2E テストを実行し、すべて通ることをマージの条件とする。
+- `tasks.md` の完了したタスクは `- [x]` に更新し、進捗と実態を一致させる。
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- この憲章は、プロジェクトのほかのすべての規約と慣行に優先する。`plan.md`、`tasks.md`、コードが憲章と矛盾する場合は、先に憲章との整合を取る。
+- 改訂は `speckit-constitution` で行う。改訂の内容、理由、影響を受ける成果物（`docs/architecture.md`、`docs/nfr.md`、各機能の `spec.md` / `plan.md`）を示し、ユーザーの承認を得てからコミットする。
+- 版はセマンティックバージョニングで管理する。原則の削除や、互換性のない再定義は MAJOR にする。原則や節の追加と、指針の実質的な拡張は MINOR にする。表現の明確化と誤字の修正は PATCH にする。
+- レビュー（`speckit-review`）と `speckit-analyze` では、憲章への適合を確かめる。原則 II（候補名の機密性）への違反は、例外なくマージを止める。
+- エージェント向けの実行時の規則は `.kiro/steering/` に置き、この憲章と矛盾させない。
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-09-23
