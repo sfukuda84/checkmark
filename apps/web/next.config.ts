@@ -3,11 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   // ワークスペースの TypeScript のパッケージをそのまま取り込む。
-  transpilePackages: ["@app/shared", "@app/db", "@app/mail"],
+  transpilePackages: ["@app/shared", "@app/db", "@app/mail", "@app/trademark"],
   poweredByHeader: false,
   // 規約の本文は fs で読むため、standalone の出力に明示して含める。
   outputFileTracingIncludes: { "/**/*": ["./content/legal/**/*"] },
-  serverExternalPackages: ["pg", "pg-boss", "pino"],
+  // kuromoji の辞書は worker だけで使う。web の出力に取り込まない（001 research R3）。
+  serverExternalPackages: ["pg", "pg-boss", "pino", "kuromoji"],
   async headers() {
     return [
       {

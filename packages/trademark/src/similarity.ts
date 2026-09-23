@@ -10,7 +10,10 @@ const VOWELS = new Set(["a", "i", "u", "e", "o"]);
 
 /** 濁点・半濁点を外した仮名（ガ → カ、パ → ハ）。 */
 function unvoice(mora: string): string {
-  return mora.normalize("NFD").replace(/[゙゚]/g, "").normalize("NFC");
+  return mora
+    .normalize("NFD")
+    .replace(/[゙゚]/g, "")
+    .normalize("NFC");
 }
 
 function splitRomaji(mora: string): { consonant: string; vowel: string } {

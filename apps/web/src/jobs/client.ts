@@ -15,7 +15,7 @@ interface JobSender {
 let bossPromise: Promise<PgBoss> | undefined;
 
 /** web からはジョブの登録だけを行う。監視と定期実行は worker が担う。 */
-async function getSharedBoss(): Promise<JobSender> {
+export async function getSharedBoss(): Promise<JobSender> {
   if (!bossPromise) {
     bossPromise = (async () => {
       const url = process.env.DATABASE_URL;

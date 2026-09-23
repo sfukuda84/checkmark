@@ -60,7 +60,13 @@ async function main(argv: string[]): Promise<void> {
   let count: number;
   if (command === "import") {
     if (!values.file || !values["as-of"]) throw new Error("--file と --as-of を指定する");
-    count = await runImport({ databaseUrl, file: values.file, asOf: values["as-of"], mode: values.mode, source: values.source });
+    count = await runImport({
+      databaseUrl,
+      file: values.file,
+      asOf: values["as-of"],
+      mode: values.mode,
+      source: values.source,
+    });
   } else if (command === "seed-fixture") {
     count = await runImport({
       databaseUrl,

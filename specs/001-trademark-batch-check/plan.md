@@ -39,7 +39,7 @@
 - 画面の応答が p95 で 1 秒以内（SC-009、NFR-PE-001）
 
 **Constraints**:
-- VPS 2GB に web、worker、PostgreSQL が同居する。kuromoji の辞書は worker だけで読み込む（約 150MB）
+- VPS 2GB に web、worker、PostgreSQL が同居する。kuromoji の辞書は worker だけで、必要なときに読み込み、10 分使わなければ手放す（読み込み中は約 390MB。research R3）
 - 商標データの件数と容量は未確認である（`docs/architecture.md` §9 R3）。索引は GIN（trgm、区分）と btree に限る
 - 特許庁のデータの項目定義は申込の後に確定する（research R1）
 
@@ -100,7 +100,7 @@ packages/trademark/            # @app/trademark（新規。DB に依存しない
 ├── src/jplatpat.ts            # 公式サービスへのリンク（R8）
 └── tests/
 
-packages/db/src/usage-ledger.ts # 利用回数を数える・戻す（web と worker で共有。research R6）
+packages/db/src/usage-ledger.ts # 利用回数を数える・戻す、候補を「不明」にする、期間の計算（web と worker で共有。research R6）
 packages/db/src/schema/
 ├── trademarks.ts              # trademark_datasets、trademark_marks、trademark_readings
 └── checks.ts                  # checks、check_candidates、trademark_results、usage_counters、app_settings
@@ -113,7 +113,9 @@ apps/web/src/
 │   ├── repository.ts          # findOwnedCheck など、本人に限った読み出し（R9）
 │   ├── start-check.ts         # 実行（検証、ロック、利用回数、ジョブ登録）
 │   ├── retry.ts               # やり直し
-│   ├── usage.ts               # 残り、期間、上限値
+│   ├── usage.ts               # 残り、上限値、実行中の件数
+│   ├── jobs.ts                # 照合のジョブの送信（CheckJobSender）
+│   ├── presentation.ts        # 日時、基準日の古さ、区分の表示、入力の引き継ぎ
 │   └── columns.tsx            # 比較表の列の定義（R7）
 ├── app/(app)/page.tsx         # トップ（直近 5 件、残り）
 ├── app/(app)/checks/new/      # 入力画面（page.tsx、check-form.tsx、class-picker.tsx）
@@ -127,6 +129,7 @@ apps/worker/src/jobs/
 
 apps/importer/                 # @app/importer（新規）
 ├── src/cli.ts                 # import、seed-fixture
+├── src/testing.ts             # テスト用: 検証用データの取り込み
 ├── src/tsv.ts                 # 取り込み用 TSV の読み取りと検証
 ├── src/load.ts                # データセットへの取り込み
 └── fixtures/sample-trademarks.tsv

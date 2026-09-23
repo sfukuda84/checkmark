@@ -15,5 +15,8 @@
     "@app/db": "workspace:*",
     "@app/shared": "workspace:*",
     "@app/trademark": "workspace:*"
+  },
+  "exports": {
+    "./testing": "./src/testing.ts"
   }
 }

@@ -63,7 +63,10 @@ describe("buildTrademarkResult（FR-009、FR-013）", () => {
   });
 
   it("類似は上位 20 件までにする", () => {
-    const many = Array.from({ length: 30 }, (_, i) => ({ mark: mark(`m${String(i).padStart(2, "0")}`), reading: "サクラ" }));
+    const many = Array.from({ length: 30 }, (_, i) => ({
+      mark: mark(`m${String(i).padStart(2, "0")}`),
+      reading: "サクラ",
+    }));
     const r = buildTrademarkResult({ reading: "サクラ", identical: [], similarCandidates: many });
     expect(r.matches).toHaveLength(MAX_SIMILAR_MATCHES);
   });

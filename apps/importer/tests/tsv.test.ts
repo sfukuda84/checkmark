@@ -5,7 +5,9 @@ const HEADER = "application_number\tregistration_number\tmark_text\treadings\tho
 
 describe("parseImportTsv（contracts/jobs-and-cli.md §3）", () => {
   it("行を読み、称呼を ; で、区分を , で分ける", () => {
-    const r = parseImportTsv(`${HEADER}\n2020-1\t6001\tBLUEMOON\tブルームーン;ぶるーむん\t株式会社A\t9,25\tregistered\n`);
+    const r = parseImportTsv(
+      `${HEADER}\n2020-1\t6001\tBLUEMOON\tブルームーン;ぶるーむん\t株式会社A\t9,25\tregistered\n`,
+    );
     expect(r.errors).toEqual([]);
     expect(r.rows).toEqual([
       {
@@ -26,7 +28,9 @@ describe("parseImportTsv（contracts/jobs-and-cli.md §3）", () => {
   });
 
   it("列の並びは見出しで決める", () => {
-    const r = parseImportTsv("status\tclasses\tholder_name\tmark_text\tapplication_number\nregistered\t1\tC\tX\t2020-3");
+    const r = parseImportTsv(
+      "status\tclasses\tholder_name\tmark_text\tapplication_number\nregistered\t1\tC\tX\t2020-3",
+    );
     expect(r.rows[0]).toMatchObject({ applicationNumber: "2020-3", markText: "X", classes: [1] });
   });
 

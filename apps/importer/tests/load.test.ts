@@ -42,7 +42,11 @@ describe("importRows（research R1、contracts/jobs-and-cli.md §3）", () => {
   });
 
   it("消滅（dead）の商標は取り込まない（FR-010a）", async () => {
-    await importRows(db, [row("1"), row("2", { status: "dead" })], { asOf: "2026-09-20", mode: "full", source: "fixture" });
+    await importRows(db, [row("1"), row("2", { status: "dead" })], {
+      asOf: "2026-09-20",
+      mode: "full",
+      source: "fixture",
+    });
     const marks = await db.select().from(trademarkMarks);
     expect(marks.map((m) => m.applicationNumber)).toEqual(["1"]);
   });
@@ -73,7 +77,9 @@ describe("importRows（research R1、contracts/jobs-and-cli.md §3）", () => {
   it("失敗したら何も変えず、データセットを failed にして前の active を残す", async () => {
     await importRows(db, [row("1")], { asOf: "2026-09-01", mode: "full", source: "fixture" });
     const bad = row("9", { holderName: null as unknown as string });
-    await expect(importRows(db, [row("2"), bad], { asOf: "2026-09-20", mode: "full", source: "fixture" })).rejects.toThrow();
+    await expect(
+      importRows(db, [row("2"), bad], { asOf: "2026-09-20", mode: "full", source: "fixture" }),
+    ).rejects.toThrow();
     const marks = await db.select().from(trademarkMarks);
     expect(marks.map((m) => m.applicationNumber)).toEqual(["1"]);
     const sets = await db.select().from(trademarkDatasets).orderBy(trademarkDatasets.asOfDate);

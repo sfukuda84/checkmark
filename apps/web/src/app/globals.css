@@ -131,3 +131,84 @@ td {
   flex-wrap: wrap;
   font-size: 0.9rem;
 }
+/* 一括チェック（001） */
+textarea {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #f4b400;
+  outline-offset: 2px;
+}
+fieldset.class-picker {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+fieldset.class-picker legend {
+  font-weight: 600;
+}
+.class-list {
+  list-style: none;
+  padding: 0;
+}
+.class-list .checkbox {
+  margin-top: 0.3rem;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table.comparison {
+  min-width: 32rem;
+}
+table.comparison caption {
+  text-align: left;
+  font-weight: 600;
+}
+.outcome {
+  font-weight: 700;
+}
+.outcome.identical {
+  color: var(--danger);
+}
+.outcome.similar {
+  color: #8a5300;
+}
+.outcome.unknown {
+  color: var(--muted);
+}
+.small {
+  font-size: 0.85rem;
+}
+button.small {
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.9rem;
+}
+.matches {
+  padding-left: 1.2rem;
+}
+.matches li {
+  margin-bottom: 0.6rem;
+}
+dl.meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 1rem;
+}
+dl.meta dt {
+  font-weight: 600;
+}
+dl.meta dd {
+  margin: 0;
+}
+@media (max-width: 30rem) {
+  dl.meta {
+    grid-template-columns: 1fr;
+  }
+}

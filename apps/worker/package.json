@@ -9,12 +9,14 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "@app/importer": "workspace:*"
   },
   "dependencies": {
     "@app/db": "workspace:*",
     "@app/mail": "workspace:*",
     "@app/shared": "workspace:*",
-    "pg-boss": "^12.33.4"
+    "pg-boss": "^12.33.4",
+    "@app/trademark": "workspace:*"
   }
 }

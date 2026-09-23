@@ -64,7 +64,13 @@ export async function refundCandidate(db: DbOrTx, candidateId: string): Promise<
  */
 export async function markCandidateUnknown(
   db: DbOrTx,
-  input: { candidateId: string; attempt?: number; errorCode: TrademarkErrorCode; now: Date; datasetAsOf?: string | null },
+  input: {
+    candidateId: string;
+    attempt?: number;
+    errorCode: TrademarkErrorCode;
+    now: Date;
+    datasetAsOf?: string | null;
+  },
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
     const conditions = [

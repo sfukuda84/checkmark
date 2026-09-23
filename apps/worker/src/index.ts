@@ -5,6 +5,9 @@ import { createLogger } from "@app/shared/logger";
 import { ensureQueues, QUEUES } from "@app/shared/queues";
 import { createOutboundEmailStore, handleSendEmail, type SendEmailData } from "./jobs/send-email";
 import { registerMaintenanceJobs } from "./jobs/schedules";
+import { createPgTrademarkSource } from "./jobs/pg-trademark-source";
+import { handleTrademarkCheck, type TrademarkCheckData } from "./jobs/trademark-check";
+import { createKuromojiTokenizer } from "@app/trademark/reading";
 
 const logger = createLogger({ name: "worker" });
 
@@ -29,6 +32,21 @@ async function main(): Promise<void> {
         await handleSendEmail(
           { store, transport, logger },
           { id: job.id, retryCount: job.retryCount, retryLimit: job.retryLimit, data: job.data },
+        );
+      }
+    },
+  );
+
+  const source = createPgTrademarkSource(db);
+  const tokenizer = createKuromojiTokenizer();
+  await boss.work(
+    QUEUES.trademarkCheck,
+    { includeMetadata: true, batchSize: 1, localConcurrency: 2 },
+    async (jobs: JobWithMetadata<TrademarkCheckData>[]) => {
+      for (const job of jobs) {
+        await handleTrademarkCheck(
+          { db, source, tokenize: tokenizer.tokenize, logger },
+          { data: job.data, retryCount: job.retryCount, retryLimit: job.retryLimit },
         );
       }
     },

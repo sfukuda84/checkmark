@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { MAX_CANDIDATE_LENGTH, normalizeText, toKatakana, validateCandidateText, validateReading } from "../src/normalize";
+import {
+  MAX_CANDIDATE_LENGTH,
+  normalizeText,
+  toKatakana,
+  validateCandidateText,
+  validateReading,
+} from "../src/normalize";
 
 describe("normalizeText（research R2、FR-003）", () => {
   it("全角・半角、ひらがな・カタカナ、大文字・小文字の違いをそろえる", () => {

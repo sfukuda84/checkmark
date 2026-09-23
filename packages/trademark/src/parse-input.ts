@@ -1,4 +1,10 @@
-import { normalizeText, validateCandidateText, validateReading, type CandidateTextError, type ReadingError } from "./normalize";
+import {
+  normalizeText,
+  validateCandidateText,
+  validateReading,
+  type CandidateTextError,
+  type ReadingError,
+} from "./normalize";
 
 /** 入力欄の解析（research R2、contracts/server-actions.md の startCheck）。 */
 

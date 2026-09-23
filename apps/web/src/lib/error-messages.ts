@@ -16,7 +16,29 @@ const MESSAGES: Record<string, string> = {
   INVALID_TOKEN: "リンクが無効か、有効期限が切れています。もう一度お試しください。",
   TOKEN_EXPIRED: "リンクの有効期限が切れています。もう一度お試しください。",
   USER_ALREADY_EXISTS: "登録を受け付けました。確認メールをご確認ください。",
+  // 一括チェック（001 contracts/server-actions.md）
+  NO_CANDIDATES: "候補を 1 件以上入力してください。",
+  TOO_MANY_CANDIDATES: "1 回にチェックできる候補は 10 件までです。",
+  INVALID_CANDIDATE: "入力を直してください。",
+  INVALID_CLASS: "区分を選び直してください。",
+  QUOTA_EXCEEDED: "今月チェックできる候補の数の上限を超えています。",
+  TOO_MANY_RUNNING: "確認中のチェックが 3 件あります。終わるまでお待ちください。",
+  NOT_FOUND: "見つかりませんでした。",
+  NOT_RETRYABLE: "この候補にはすでに結果が出ています。",
 };
+
+/** 入力の行ごとのエラーの理由（001 FR-004）。 */
+const INPUT_REASONS: Record<string, string> = {
+  EMPTY: "候補名がありません",
+  TOO_LONG: "50 文字までにしてください",
+  INVALID_CHARS: "使えない文字が含まれています（絵文字や一部の記号は使えません）",
+  INVALID_READING: "読みはカタカナかひらがなで入力してください",
+  READING_TOO_LONG: "読みは 50 文字までにしてください",
+};
+
+export function inputReasonMessage(reason: string): string {
+  return INPUT_REASONS[reason] ?? "入力を直してください";
+}
 
 export function errorMessage(
   code: string | undefined | null,

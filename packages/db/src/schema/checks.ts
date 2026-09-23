@@ -30,7 +30,10 @@ export const checks = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    classes: smallint("classes").array().notNull().default(sql`'{}'::smallint[]`),
+    classes: smallint("classes")
+      .array()
+      .notNull()
+      .default(sql`'{}'::smallint[]`),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (t) => [index("checks_user_created_at_idx").on(t.userId, t.createdAt.desc())],
