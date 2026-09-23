@@ -31,7 +31,7 @@ description: "アプリ基盤（000-app-basic）の実装タスク"
 - [ ] T004 [P] `packages/shared` を作る。`src/env.ts`（Zod による環境変数の検証）、`src/time.ts`（現在時刻の注入）、`src/logger.ts`（pino。`password`、`token`、`session`、`cookie`、`authorization`、`email`、`candidate` を redact する）。先に `packages/shared/tests/logger.test.ts` で伏せ字のテストを書く（FR-030、NFR-SE-004）
 - [ ] T005 `apps/web` に Next.js 16（App Router、`output: "standalone"`）を作る。`next.config.ts`、`src/app/layout.tsx`（`lang="ja"`）、`src/app/globals.css`
 - [ ] T006 [P] `apps/worker` を作る（`src/index.ts` で pg-boss を起動し、キューを登録する骨組み）
-- [ ] T007 [P] テストの設定を作る。ルートの `vitest.workspace.ts`、`apps/web/vitest.config.ts`（unit と integration を分ける）、`apps/web/playwright.config.ts`（web と worker を起動し、`MAIL_TRANSPORT=file` にする）
+- [ ] T007 [P] テストの設定を作る。ルートの `vitest.config.ts`（`test.projects` で各パッケージを束ねる）、`apps/web/vitest.config.ts`（unit と integration を分ける）、`apps/web/playwright.config.ts`（web と worker を起動し、`MAIL_TRANSPORT=file` にする）
 - [ ] T008 CI を作る。`.github/workflows/ci.yml` で、PostgreSQL のサービスを起動し、`pnpm install`、`pnpm lint`、`pnpm typecheck`、`pnpm db:migrate`、`pnpm test`、`pnpm test:e2e` を実行する。ジョブ名は `ci` とする。`main` のブランチ保護で `ci` を必須のチェックにする手順を `docs/ops/ci.md` に書く（FR-029、SC-007）
 
 ---
@@ -116,7 +116,7 @@ description: "アプリ基盤（000-app-basic）の実装タスク"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T036 [P] [US3] `apps/web/tests/integration/password-reset.test.ts`: 登録の有無によらず同じ応答であること、Google だけのアカウントには `reset_password_google_only` のメールになること、リンクの期限が 1 時間であること、2 回目の使用が `TOKEN_INVALID` になること、再設定で全セッションが失効すること、漏えいパスワードの拒否、試行の制限、認証の記録（`password_reset`）（FR-009〜FR-011）
+- [ ] T036 [P] [US3] 先に `apps/web/tests/unit/account-policy.test.ts` に `hasPassword()`（`credential` のログイン手段の有無）のテストを書く。そのうえで `apps/web/tests/integration/password-reset.test.ts`: 登録の有無によらず同じ応答であること、Google だけのアカウントには `reset_password_google_only` のメールになること、リンクの期限が 1 時間であること、2 回目の使用が `TOKEN_INVALID` になること、再設定で全セッションが失効すること、漏えいパスワードの拒否、試行の制限、認証の記録（`password_reset`）（FR-009〜FR-011）
 
 ### Implementation for User Story 3
 
@@ -136,7 +136,7 @@ description: "アプリ基盤（000-app-basic）の実装タスク"
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T040 [P] [US4] `apps/web/tests/unit/account-policy.test.ts`: `hasPassword()`、Google だけのアカウントでメール変更とパスワード設定を拒否する判定、再認証の新しさ（10 分）の判定（FR-012a、Clarifications Round 1）
+- [ ] T040 [P] [US4] `apps/web/tests/unit/account-policy.test.ts` に足す: Google だけのアカウントでメール変更とパスワード設定を拒否する判定、再認証の新しさ（10 分）の判定（FR-012a、Clarifications Round 1）
 - [ ] T041 [P] [US4] `apps/web/tests/integration/account.test.ts`: 次を確かめる。
   - 再認証なしの変更と退会が `REAUTH_REQUIRED` になること
   - 使われているアドレスへの変更が `EMAIL_UNAVAILABLE` になり、存在が分からないこと
@@ -148,10 +148,10 @@ description: "アプリ基盤（000-app-basic）の実装タスク"
 
 ### Implementation for User Story 4
 
-- [ ] T042 [US4] `apps/web/src/auth/reauth-plugin.ts` に、`POST /api/auth/reauth/password` を作る（パスワードの照合、`reauthenticatedAt` の更新、試行の制限）。Google だけの利用者は、`signIn.social({ provider: "google", prompt: "login" })` から戻ったときに `reauthenticatedAt` を更新する（research R6）
+- [ ] T042 [US4] `apps/web/src/auth/reauth-plugin.ts` に、`POST /api/auth/reauth/password` を作る（パスワードの照合、`reauthenticatedAt` の更新、試行の制限）。`databaseHooks.session.create.before` で、新しいセッションの `reauthenticatedAt` を今にする。Google だけの利用者の再認証は、`signIn.social({ provider: "google", prompt: "login" })` でログインし直し、セッションを作り直すことで行う（research R6）
 - [ ] T043 [US4] `user.changeEmail` を設定する。確認メールは `change_email_verify` で送る。`hooks.before` の `/change-email` で、`hasPassword()` と再認証を確かめ、使われているアドレスは `EMAIL_UNAVAILABLE` にする。変更の確認後に、古いアドレスへ `change_email_notice` を送り、`email_changed` を記録する
 - [ ] T044 [US4] `user.deleteUser` を設定する。`beforeDelete` で、再認証の確認、`account_deleted` の記録、本人の `verification` の削除を、user の削除と同じトランザクションで行う（data-model §10）
-- [ ] T045 [US4] `apps/web/src/app/(app)/account/page.tsx`、`apps/web/src/app/(app)/account/reauth/page.tsx`、`apps/web/src/app/account/deleted/page.tsx` を作る。Google だけのアカウントには、変更できない理由を表示する
+- [ ] T045 [US4] `apps/web/src/app/(app)/account/page.tsx`、`apps/web/src/app/(app)/account/reauth/page.tsx`、`apps/web/src/app/account-deleted/page.tsx` を作る。Google だけのアカウントには、変更できない理由を表示する
 - [ ] T046 [US4] `apps/web/tests/e2e/us4-account.spec.ts`: 再認証、メールアドレスの変更と確認、退会と退会後のログインの拒否
 
 **Checkpoint**: 本人が自分のデータを確実に消せる（憲章 II）
@@ -226,7 +226,7 @@ description: "アプリ基盤（000-app-basic）の実装タスク"
 - **Foundational（Phase 2）**: Setup の後。すべてのストーリーの前提になる
 - **US1（Phase 3）**: Foundational の後。ほかのストーリーの前提になる（同意、試行の制限、ログイン）
 - **US2（Phase 4）**: US1 の後（同意の Cookie とログインの画面を使う）
-- **US3（Phase 5）**: US1 の後。US2 と並行できる（`account-policy.ts` の `hasPassword()` は T037 で作り、T040 で検証する）
+- **US3（Phase 5）**: US1 の後。US2 と並行できる（`account-policy.ts` の `hasPassword()` は T036 でテストを書き、T037 で作る）
 - **US4（Phase 6）**: US1 の後。Google の再認証を確かめるには US2 が要る
 - **US5（Phase 7）**: US1 の後
 - **US6（Phase 8）**: US1 の後

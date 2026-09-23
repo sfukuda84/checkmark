@@ -50,7 +50,7 @@ pnpm test:e2e      # Playwright（web と worker を起動して実行する）
    - `/account` でメールアドレスの変更を選ぶ。→ `/account/reauth` に移る。
    - パスワードを入れて再認証し、新しいアドレスを入力する。→ 新しいアドレスに確認メールが出る。確認するまでは古いアドレスのまま使える。
    - リンクを開く。→ 新しいアドレスに変わり、古いアドレスに通知が出る。
-   - 退会を選び、再認証して確認する。→ `/account/deleted` が表示され、DB の `user`、`session`、`account`、`consents` に本人の行が残っていない。`auth_events` の本人の行は `user_id` が NULL になっている。
+   - 退会を選び、再認証して確認する。→ `/account-deleted` が表示され、DB の `user`、`session`、`account`、`consents` に本人の行が残っていない。`auth_events` の本人の行は `user_id` が NULL になっている。
 5. **規約の改定と Cookie（US5）**
    - `apps/web/src/legal/registry.ts` の `terms` の現行の版を新しい版に変え、`content/legal/terms/` に本文を足して再起動する。→ ログインすると `/consent` に移り、同意すると `consents` に新しい版の行ができる。
    - シークレットウィンドウで開く。→ Cookie の同意のバナーが出る。「必須のみ」を選ぶと、それ以降は出ない。

@@ -95,12 +95,14 @@
 - **Decision**:
   - セッションに `reauthenticatedAt` を持たせる（Better Auth の session の追加フィールド）。
   - **パスワードでログインできる利用者**: 独自の Server Action `reauthenticate(password)` でパスワードを照合する。照合には、Better Auth の `ctx.context.password.verify` を使う独自エンドポイント `/reauth/password` を設ける。成功したら `reauthenticatedAt` を今にする。
-  - **Google だけの利用者**: Google でのログインし直し（`signIn.social` に `prompt: "login"`）を求める。戻ってきたら `reauthenticatedAt` を今にする。
+  - **Google だけの利用者**: Google でのログインし直し（`signIn.social` に `prompt: "login"`）を求める。ログインし直すとセッションが作り直される。
+  - **どの手段でも**: `databaseHooks.session.create.before` で、新しく作るセッションの `reauthenticatedAt` を今にする。したがって、ログインの直後 10 分は再認証済みとして扱う。
+  - Better Auth 側の新しさの確認は `freshAge: 0` で止める。`deleteUser` と `changeEmail` の可否は、hooks の再認証の判定に一本化する。
   - **退会とメールアドレスの変更の Server Action**: `reauthenticatedAt` が 10 分以内でなければ `REAUTH_REQUIRED` を返す。
 - **Rationale**:
   - Better Auth の `deleteUser` はパスワードを受け取れる。しかし、`changeEmail` はパスワードを受け取らない。
   - 2 つの操作と 2 種類のログイン手段で同じ判定にするため、独自に持つ。
-- **Alternatives considered**: `freshAge` だけで判定する案。ログインの直後は、いつでも再認証なしで通ってしまうため採らない。
+- **Alternatives considered**: `freshAge` だけで判定する案。既定の 1 日では長すぎる。また、パスワードの再入力で新しさを更新できないため採らない。
 
 ## R7. サインアップ時の同意（FR-017、FR-019、FR-020）
 

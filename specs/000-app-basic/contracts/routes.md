@@ -15,7 +15,7 @@
 | `/consent` | ログイン中 | 未同意の文書（現行の版）の表示と同意ボタン、ログアウト | FR-019、FR-020 |
 | `/account` | 要ログイン | メールアドレスの表示と変更（パスワードを持つ場合だけ）、退会。Google だけのアカウントには、変更できない理由を示す | FR-012、FR-012a、FR-015 |
 | `/account/reauth` | 要ログイン | パスワードの再入力、または Google でのログインし直し。終わったら元の操作へ戻る | Clarifications Round 1 |
-| `/account/deleted` | 誰でも | 退会が完了したことの案内 | FR-016 |
+| `/account-deleted` | 誰でも | 退会が完了したことの案内 | FR-016 |
 | `/suspended` | 誰でも | 利用が停止されていることと問い合わせ先 | FR-026 |
 | `/maintenance` | 誰でも | メンテナンス中の表示（HTTP 503） | FR-028 |
 | `/legal/terms`、`/legal/privacy` | 誰でも | 現行の版の本文 | FR-018 |

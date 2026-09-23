@@ -104,7 +104,7 @@ apps/web/                    # @app/web
 │   │   ├── (auth)/sign-up/、sign-in/、verify-email/、forgot-password/、reset-password/
 │   │   ├── (app)/page.tsx、account/、account/reauth/、consent/
 │   │   ├── operator/page.tsx
-│   │   ├── suspended/、maintenance/、account/deleted/
+│   │   ├── suspended/、maintenance/、account-deleted/
 │   │   └── legal/terms/、privacy/、cookies/
 │   ├── auth/
 │   │   ├── auth.ts          # Better Auth の設定

@@ -34,7 +34,7 @@
 | expires_at | timestamptz | NOT NULL | 最後の延長から 30 日（FR-008a） |
 | ip_address | text | NULL | |
 | user_agent | text | NULL | |
-| reauthenticated_at | timestamptz | NULL | 再認証をした日時（research R6）。10 分以内なら退会とメール変更を許す |
+| reauthenticated_at | timestamptz | NULL | 再認証をした日時（research R6）。セッションを作った時点と、パスワードを再入力した時点で今にする。10 分以内なら退会とメール変更を許す |
 | created_at | timestamptz | NOT NULL | |
 | updated_at | timestamptz | NOT NULL | |
 
