@@ -32,7 +32,7 @@ description: "アプリ基盤（000-app-basic）の実装タスク"
 - [ ] T005 `apps/web` に Next.js 16（App Router、`output: "standalone"`）を作る。`next.config.ts`、`src/app/layout.tsx`（`lang="ja"`）、`src/app/globals.css`
 - [ ] T006 [P] `apps/worker` を作る（`src/index.ts` で pg-boss を起動し、キューを登録する骨組み）
 - [ ] T007 [P] テストの設定を作る。ルートの `vitest.workspace.ts`、`apps/web/vitest.config.ts`（unit と integration を分ける）、`apps/web/playwright.config.ts`（web と worker を起動し、`MAIL_TRANSPORT=file` にする）
-- [ ] T008 CI を作る。`.github/workflows/ci.yml` で、PostgreSQL のサービスを起動し、`pnpm install`、`pnpm lint`、`pnpm typecheck`、`pnpm db:migrate`、`pnpm test`、`pnpm test:e2e` を実行する。ジョブ名は `ci` とする（FR-029）
+- [ ] T008 CI を作る。`.github/workflows/ci.yml` で、PostgreSQL のサービスを起動し、`pnpm install`、`pnpm lint`、`pnpm typecheck`、`pnpm db:migrate`、`pnpm test`、`pnpm test:e2e` を実行する。ジョブ名は `ci` とする。`main` のブランチ保護で `ci` を必須のチェックにする手順を `docs/ops/ci.md` に書く（FR-029、SC-007）
 
 ---
 
@@ -297,5 +297,9 @@ Task: "T027 apps/web/content/legal/ と legal/registry.ts"
   - FR-030: T004
   - FR-031: T019、T032、T058
   - FR-032: T041、T044
+  - SC-004: T041
+  - SC-005: T051
   - SC-006: T060
+  - SC-007: T008
   - SC-008: T016
+  - SC-001〜SC-003: 利用時の指標であり、作るものがないため、タスクの対象外とする（quickstart の手動確認で見る）
