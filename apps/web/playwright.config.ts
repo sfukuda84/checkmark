@@ -32,7 +32,7 @@ export default defineConfig({
     {
       // output: "standalone" のため、standalone の server.js で起動する。静的ファイルは自分で置く。
       command:
-        "pnpm exec next build && rm -rf .next/standalone/apps/web/.next/static && cp -r .next/static .next/standalone/apps/web/.next/static && node .next/standalone/apps/web/server.js",
+        "pnpm exec next build && node scripts/prepare-standalone.mjs && node .next/standalone/apps/web/server.js",
       url: `${BASE_URL}/sign-in`,
       env: { ...env, NODE_ENV: "production", HOSTNAME: "127.0.0.1" },
       reuseExistingServer: !process.env.CI,

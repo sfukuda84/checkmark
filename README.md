@@ -7,7 +7,6 @@ Spec Kit による仕様駆動開発の進め方は [docs/speckit-scaffold.md](d
 
 エージェントで `speckit-bootstrap` スキルを実行し、コアコンセプトから機能一覧、アーキテクチャ、憲章、共通基盤、非機能要件までを作る。その後は `speckit-all` で 1 件ずつ仕様化と実装を進める。
 
-
 ## 概要
 
 名前の候補を、商標・Google 検索・ドメイン・SNS でまとめて確かめる Web サービス。

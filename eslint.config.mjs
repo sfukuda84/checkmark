@@ -52,7 +52,7 @@ export default tseslint.config(
     rules: { "@typescript-eslint/no-explicit-any": "off" },
   },
   {
-    files: ["**/scripts/**/*.ts", "**/*.config.{ts,mjs}"],
+    files: ["**/scripts/**/*.{ts,mjs}", "**/*.config.{ts,mjs}"],
     rules: { "no-console": "off" },
   },
 );
