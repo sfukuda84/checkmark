@@ -25,7 +25,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 
 **Purpose**: 新しいパッケージと実行単位の骨組み
 
-- [ ] T001 `packages/trademark`（`@app/trademark`）を作る。`package.json`（依存: kuromoji 0.1.2、wanakana 5.3.1）、`tsconfig.json`、`vitest.config.ts`、`src/index.ts`。ルートの vitest の projects に加える
+- [ ] T001 `packages/trademark`（`@app/trademark`）を作る。`package.json`（依存: kuromoji 0.1.2、wanakana 5.3.1）、`tsconfig.json`、`vitest.config.ts`、`src/index.ts`。ルートの vitest の projects に加える。あわせて `packages/db` に `vitest.config.ts` を作り、projects に加える（T067 のテスト用）
 - [ ] T002 [P] `apps/importer`（`@app/importer`）を作る。`package.json`（scripts: `import`、`seed-fixture`、`typecheck`）、`tsconfig.json`、`vitest.config.ts`、`src/cli.ts` の骨組み。ルートの vitest の projects に加える
 - [ ] T003 [P] `packages/shared/src/queues.ts` に `trademark-check`（retryLimit 1、retryDelay 5、expireInSeconds 30、deleteAfterSeconds 86400）と `expire-trademark-checks` を足す（contracts/jobs-and-cli.md §1）
 - [ ] T004 [P] `packages/shared/src/logger.ts` の伏せ字に `inputtext`、`normalizedtext`、`reading`、`userreading`、`marktext` を足し、`packages/shared/tests/logger.test.ts` にテストを足す（FR-031、research R9）
@@ -83,7 +83,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 
 ### Implementation for User Story 1
 
-- [ ] T032 [US1] T027 を通す実装を書く。`packages/trademark/src/reading.ts`（kuromoji は初回に 1 回だけ読み込む）
+- [ ] T032 [US1] T027 を通す実装を書く。`packages/trademark/src/reading.ts`（kuromoji は動的な import で、初回に 1 回だけ読み込む。web に辞書を入れないよう、`apps/web/next.config.ts` の `serverExternalPackages` に kuromoji を足す）
 - [ ] T033 [US1] T028 を通す実装を書く。`apps/worker/src/jobs/pg-trademark-source.ts`
 - [ ] T034 [US1] T029 を通す実装を書く。`apps/worker/src/jobs/trademark-check.ts`、`apps/worker/src/index.ts` への登録
 - [ ] T035 [US1] 本人に限った読み出し（`findOwnedCheck`、`listRecentChecks`）を書く。`apps/web/src/checks/repository.ts`
