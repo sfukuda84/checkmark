@@ -1,6 +1,10 @@
+> この文書は、プロジェクトの作成または更新に使った scaffold（https://github.com/sfukuda84/my-speckit-scaffold、main、3a4f74d）の README の写しである。scaffold 自体の開発に関する節（「scaffold の更新」など）は、このプロジェクトには当てはまらない。
+
 # my-speckit-scaffold
 
 [GitHub Spec Kit](https://github.com/github/spec-kit) による仕様駆動開発（Spec-Driven Development）を、複数の AI エージェントで同じ手順で進めるためのプロジェクト scaffold。
+
+> **使い方は [MANUAL.md](MANUAL.md)（利用マニュアル）にまとめている。** 最小の手順、事業計画と企画書の作り方、企画書のテンプレートの差し替え方法などは、そちらを見る。この README は、仕組みと scaffold の開発者向けの説明である。
 
 - 次の 5 つのエージェントで、同じ Spec Kit のスキルとルールを使う。
   - Claude Code
@@ -30,7 +34,7 @@
 uv tool install "git+https://github.com/sfukuda84/my-speckit-scaffold#subdirectory=tool"
 ```
 
-このリポジトリは非公開なので、GitHub に認証できる状態（`gh auth login` と `gh auth setup-git` など）で実行する。更新は `uv tool upgrade new-speckit-project` で行う。
+更新は `uv tool upgrade new-speckit-project` で行う。
 
 ### 2. プロジェクトを作る
 
@@ -47,7 +51,9 @@ new-speckit-project ~/work/my-app --agent codex        # 使うエージェン�
 3. コアコンセプトを `docs/concept/core-concept.md` に保存し、`git init` と初回コミットを行う。scaffold の README は `docs/speckit-scaffold.md` に移る。
 4. 指定のエージェントを対話モードで起動し、`speckit-bootstrap` を始める。
 
-オプションの一覧は [tool/README.md](tool/README.md) を参照する。
+オプションの一覧は [tool/README.md](https://github.com/sfukuda84/my-speckit-scaffold/blob/main/tool/README.md) を参照する。
+
+作成済みのプロジェクトに scaffold の新しい版を取り込むときは、プロジェクトの `main` で `new-speckit-project update` を実行する（手で直したファイルは上書きせず、新しい版を `.scaffold-new/` に置く。詳しくは [MANUAL.md](MANUAL.md) の §9）。
 
 ### 3. 立ち上げ（speckit-bootstrap）
 
@@ -65,6 +71,19 @@ new-speckit-project ~/work/my-app --agent codex        # 使うエージェン�
 ### 4. 仕様化と実装
 
 `speckit-all` を引数なしで実行すると、`000-app-basic` から 1 件ずつ、仕様から実装までを通して進める。工程を分けたい場合は `speckit-feature`（仕様）と `speckit-coding`（実装）を使う（→「worktree を使った実行」）。
+
+### 5. 事業計画（任意）
+
+事業計画（市場規模、価格と収支計画、KPI、スケジュール、体制、リスク）が必要な場合は、`speckit-project` で `docs/project.md` を作る。収支は、前提の表から `plan.py` が楽観・標準・悲観の 3 シナリオで計算する。
+
+### 6. 企画書（任意）
+
+`speckit-presentation` で、成果物から読み手（社内の承認 `internal`、投資家 `investor`、顧客・パートナー `customer`）に合わせた企画書を PowerPoint で作る。
+
+- 内容は `docs/presentation/<読み手>/slides.md`、見た目は `docs/presentation/design.yaml` に書き、`build_pptx.py`（`uv run` で実行。python-pptx を使う）が `proposal.pptx` にする。
+- 会社の雛形の .pptx を `design.yaml` の `template` に指定すると、その背景とマスターの上に描く。
+- pptx を PowerPoint で手で直すと、次に作り直したときに消える。直したい点は `slides.md` か `design.yaml` に反映する。
+- 数字は成果物（とくに `docs/project.md`）にあるものだけを使い、出典をスライドに入れる。
 
 ## ディレクトリ構成
 
@@ -89,8 +108,11 @@ new-speckit-project ~/work/my-app --agent codex        # 使うエージェン�
 │   ├── concept/              # コアコンセプト（入力）と backlog.md
 │   ├── feature/              # 機能概要と着手順序
 │   ├── architecture.md       # 構成と技術スタック（speckit-architecture が作る）
+│   ├── project.md            # 事業計画（speckit-project が作る）
+│   ├── presentation/         # 企画書（speckit-presentation が作る）
 │   └── nfr.md                # 非機能要件（speckit-nfr-feature が作る）
 ├── specs/                    # フィーチャーごとの仕様・設計・タスク（Spec Kit の成果物）
+├── .github/workflows/        # scaffold 自体のテスト（新規プロジェクトには含まれない）
 └── tool/                     # new-speckit-project コマンドとテスト（新規プロジェクトには含まれない）
 ```
 
@@ -133,6 +155,8 @@ steering のファイルを追加したときは、`CLAUDE.md`、`GEMINI.md`、`
 | `speckit-concept-2-feature` | `docs/concept/` を、`speckit-specify` に 1 回で渡せる単位の機能概要（`docs/feature/`）に仕分ける。共通機能は機能にせず、共通基盤の候補として記録する |
 | `speckit-architecture` | 機能一覧を実現する構成と技術スタックを、3 系統の比較から選んで `docs/architecture.md` に書く |
 | `speckit-common-feature` | 認証やメール送信などの共通機能を `docs/feature/000-app-basic.md` に定義する |
+| `speckit-project` | 事業計画（市場、価格と収支、KPI、スケジュール、体制、リスク）を `docs/project.md` に定義する。収支は `plan.py` で計算・検算する |
+| `speckit-presentation` | 成果物から、読み手に合わせた企画書（pptx）を作る。内容は `slides.md`、見た目は `design.yaml`、変換は `build_pptx.py` |
 | `speckit-nfr-feature` | 非機能要件を `docs/nfr.md`（横断要件）と `docs/feature/999-app-nfr.md`（運用基盤）に定義する |
 | `speckit-feature` | 仕様工程。specify → clarify ×2 → plan → tasks → analyze ×3 を行い、`main` にマージする |
 | `speckit-coding` | 実装工程。implement → converge → レビュー ×2 を行い、`main` にマージする |
@@ -156,7 +180,7 @@ steering のファイルを追加したときは、`CLAUDE.md`、`GEMINI.md`、`
 
 ## worktree を使った実行（speckit-feature / speckit-coding / speckit-all）
 
-フィーチャーごとに `.worktrees/<NNN-name>`（ブランチ `feature/<NNN-name>`）で作業し、ステップが終わるたびにコミットする。コミットには trailer `Speckit-Step: <ステップ>` を付けて進捗を記録する。
+フィーチャーごとに `.worktrees/<NNN-name>`（ブランチ `feature/<NNN-name>`）で作業し、ステップが終わるたびにコミットする。コミットには trailer `Speckit-Step: <ステップ>` と `Speckit-Feature: <NNN-name>` を付けて進捗を記録する。着手順は `docs/feature/spec_order.md` の並びに従い、機能ファイルの状態欄は S2 で `spec化済み`、S11 で `完了` に自動で更新される。
 
 | ステップ | 内容 | 担当 |
 |---|---|---|
@@ -169,6 +193,7 @@ steering のファイルを追加したときは、`CLAUDE.md`、`GEMINI.md`、`
 - **`speckit-all` のとき**: 仕様工程の後もマージせず、同じ worktree のまま実装工程に進む。
 - **中断したとき**: worktree が残っていれば、どのスキルからでも続きのステップから再開できる。エージェントを変えて再開してもよい。
 - **引数**: 番号（`1`、`002`）、範囲（`002-005`）、`all`、省略（次の未着手）を受け付ける。複数を指定したときは 1 件ずつ直列に進める。
+- **片付け（S12）**: リポジトリのルートで実行する。実装工程では、`tasks.md` に未完了のタスクが残っているとマージの前に止まり、残してよいかを確認する。
 
 進捗の確認と中止は、ヘルパースクリプトでも行える（Windows で `python3` がない場合は `python` か `py -3`）。
 
@@ -177,6 +202,13 @@ H=".claude/skills/speckit-worktree/scripts/worktree_helper.py"
 python3 $H status                 # 全フィーチャーの仕様・実装・worktree の状況
 python3 $H next --phase all       # 次に着手すべきフィーチャー
 python3 $H abort 002              # 破棄する対象の確認（実際に破棄するには --yes）
+```
+
+Windows の PowerShell では次のようになる。
+
+```powershell
+$H = ".claude\skills\speckit-worktree\scripts\worktree_helper.py"
+py -3 $H status
 ```
 
 ## scaffold の更新
@@ -190,19 +222,43 @@ python3 $H abort 002              # 破棄する対象の確認（実際に破�
   done
   ```
 
-- テストは `tool/` で実行する（`cd tool && python3 -m unittest discover -s tests`）。worktree 管理のスクリプト、`validate.py`、`new-speckit-project` のテストが含まれる。
+  Windows の PowerShell では、開発者モードを有効にしたうえで次のようにする。
+
+  ```powershell
+  foreach ($d in ".claude\skills", ".agents\skills", ".kiro\skills") {
+    New-Item -ItemType SymbolicLink -Path "$d\<スキル名>" -Target "..\..\skills\speckit\<スキル名>"
+  }
+  ```
+
+- テストは `tool/` で実行する。worktree 管理のスクリプト、`validate.py`、`plan.py`、`build_pptx.py`、`new-speckit-project` のテストが含まれる。pptx の生成のテストは python-pptx があるときだけ動くので、uv で依存を足して実行する。
+
+  ```bash
+  cd tool && uv run --no-project --with python-pptx --with pyyaml python -m unittest discover -s tests
+  ```
+
+  GitHub に push すると、`.github/workflows/scaffold-tests.yml` が Ubuntu、macOS、Windows と Python 3.9、3.12 の組み合わせで同じテストを実行する。このワークフローは scaffold の開発用なので、`new-speckit-project` は新規プロジェクトに持ち込まない。
 - **このリポジトリでも、作成したプロジェクトでも、次の Specify CLI のコマンドを実行しない。** スキルがシンボリックリンクのため、リンク先の `skills/speckit/` がエージェント固有の内容で上書きされる。
   - `specify init --here --force`
-  - `specify integration install` / `upgrade` / `switch`
+  - `specify integration install` / `upgrade` / `switch` / `uninstall`（`uninstall` は共有スキルの実体まで消すおそれがある）
+
+  エージェント向けの manifest（`.specify/integrations/*.manifest.json`）は、今のスキルの実体と対応しないため置いていない。
 
   Spec Kit を新しい版にするときは、別のディレクトリで `specify init --integration codex --script py` と `specify init --integration opencode --script py` を実行し、生成されたスキル、`.specify/scripts/python/`、`.opencode/commands/` を確かめてから取り込む。
 
+## ライセンス
+
+- この scaffold は [MIT License](LICENSE) で公開している。
+- [GitHub Spec Kit](https://github.com/github/spec-kit)（MIT License、Copyright GitHub, Inc.）から生成したファイルを含む（`.specify/`、Spec Kit の標準スキル、`.opencode/commands/`）。著作権表示と許諾文は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) にある。
+- `new-speckit-project` で作るプロジェクトには、`THIRD_PARTY_NOTICES.md` を持ち込み、`LICENSE` は持ち込まない。プロジェクト自体のライセンスは、作った人が決める。
+
 ## 注意点
 
-- **Codex CLI**: 標準のサンドボックス（`workspace-write`）では `.git` が読み取り専用になり、コミットやブランチの作成ができない。`new-speckit-project` は、サンドボックスを保ったまま `.git` だけを書き込み可能にして起動する。手動で起動するときは、次のように指定する。
+- **Codex CLI**: 標準のサンドボックス（`workspace-write`）では、`.git` が読み取り専用になり、ネットワークも使えない。そのため、コミットやブランチの作成、出典付きの Web 調査、依存パッケージの取得ができない。`new-speckit-project` は、サンドボックスを保ったまま、`.git` への書き込み、Web 検索、ネットワークを有効にして起動する。手動で起動するときは、次のように指定する。
 
   ```bash
-  codex --sandbox workspace-write -c "sandbox_workspace_write.writable_roots=['$(pwd)/.git']"
+  codex --sandbox workspace-write --search \
+    -c "sandbox_workspace_write.writable_roots=['$(pwd)/.git']" \
+    -c "sandbox_workspace_write.network_access=true"
   ```
 
 - **Windows**: Git と Python があれば、bash なしで動く。
@@ -211,3 +267,4 @@ python3 $H abort 002              # 破棄する対象の確認（実際に破�
   - 各エージェントの CLI が Windows に対応しているかは、それぞれの CLI による。
 - **opencode**: `.claude/skills/` と `.agents/skills/` の両方から同じスキルを読み込むため、起動時に `duplicate skill name` の警告が出る。動作には影響しない。
 - **`.worktrees/`**: `.gitignore` で除外している。除外を外すと、worktree 管理のスクリプトが S1 で止まる。
+- **既定のブランチ**: スクリプトは既定のブランチを `main` とみなす。別の名前のリポジトリで使うときは、環境変数 `SPECKIT_MAIN_BRANCH` にその名前を指定する。

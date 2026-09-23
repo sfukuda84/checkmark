@@ -69,3 +69,6 @@ next-env.d.ts
 test-results/
 playwright-report/
 *.tsbuildinfo
+
+# ===== my-speckit-scaffold の更新で追加 =====
+.scaffold-new/

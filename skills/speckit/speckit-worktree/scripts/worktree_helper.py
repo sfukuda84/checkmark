@@ -2,13 +2,15 @@
 """worktree_helper.py - speckit-feature / speckit-coding / speckit-all 共通の worktree 管理
 
 各フィーチャーを .worktrees/<FEATURE_NAME>（ブランチ feature/<FEATURE_NAME>）で作業し、
-ステップ完了ごとのコミットに付けた trailer "Speckit-Step: <STEP>" で進捗を判定する。
+ステップ完了ごとのコミットに付けた trailer "Speckit-Step: <STEP>" と "Speckit-Feature: <FEATURE_NAME>" で
+進捗を判定する。フィーチャー名付きの trailer は main にマージされた後も残るので、マージ後も進捗を失わない。
 プロジェクトのルートから実行しても worktree の中から実行しても同じように動く。
 macOS / Linux / Windows で動くように、標準ライブラリだけで書く（Python 3.9 以上）。
 """
 
 from __future__ import annotations
 
+import functools
 import os
 import re
 import subprocess
@@ -25,6 +27,13 @@ PHASE_LAST_STEP = {"spec": "S7-3", "coding": "S11", "all": "S11"}
 FEATURE_JSON = ".specify/feature.json"
 ORDER_LINE_RE = re.compile(r"\*\*\s*([0-9]+)\.\s*\[[^\]]*\]\(\./([^.)]+)\.md\)")
 TRAILER_RE = re.compile(r"^Speckit-Step:\s*(\S+)", re.MULTILINE)
+FEATURE_TRAILER_RE = re.compile(r"^Speckit-Feature:\s*(\S+)", re.MULTILINE)
+MERGE_SUBJECT_RE = re.compile(r"^merge\(([^)]+)\): (spec|coding|all)$", re.MULTILINE)
+UNCHECKED_RE = re.compile(r"^[ \t]*- \[ \]", re.MULTILINE)
+COMMIT_SEP = "\x1e"
+# 機能ファイルの状態欄（speckit-concept-2-feature の様式）
+STATUS_SPECIFIED = "spec化済み（specs/{name}）"
+STATUS_DONE = "完了"
 NEW_FEATURE_RE = re.compile(r"^[0-9]{3}-[a-z0-9][a-z0-9-]*$")
 
 REPO_ROOT: Path = Path()
@@ -83,17 +92,34 @@ def git_passthrough(args: list[str], cwd: Path | None = None) -> None:
 
 
 def find_repo_root() -> Path:
-    """worktree の中から実行しても、メインの作業ツリーのルートを返す。"""
-    proc = subprocess.run(
-        ["git", "rev-parse", "--git-common-dir"],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-    )
-    if proc.returncode != 0:
-        raise HelperError("Git リポジトリの中で実行してください。")
-    common = Path(proc.stdout.strip())
-    if not common.is_absolute():
-        common = Path.cwd() / common
-    return common.resolve().parent
+    """worktree の中から実行しても、メインの作業ツリーのルートを返す。
+
+    - メインの作業ツリーの中なら、その最上位（--show-toplevel）。.git がファイルになっている
+      submodule や --separate-git-dir のリポジトリでも正しく求められる。
+    - このスクリプトが作った worktree（<ルート>/.worktrees/<名前>）の中なら、その 2 つ上。
+    - それ以外の worktree の中なら、git worktree list の先頭。
+    """
+    def rev_parse(*args: str) -> str:
+        proc = subprocess.run(["git", "rev-parse", *args], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+        if proc.returncode != 0:
+            raise HelperError("Git リポジトリの中で実行してください。")
+        return proc.stdout.strip()
+
+    toplevel = Path(rev_parse("--show-toplevel")).resolve()
+    git_dir = Path(rev_parse("--absolute-git-dir")).resolve()
+    common = Path(rev_parse("--git-common-dir"))
+    common = (common if common.is_absolute() else Path.cwd() / common).resolve()
+    if git_dir == common:
+        return toplevel
+    if toplevel.parent.name == ".worktrees":
+        return toplevel.parent.parent
+    proc = subprocess.run(["git", "worktree", "list", "--porcelain"], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
+    for line in proc.stdout.splitlines():
+        if line.startswith("worktree "):
+            return Path(line[len("worktree "):]).resolve()
+    raise HelperError("メインの作業ツリーを特定できません。")
 
 
 def branch_of(name: str) -> str:
@@ -120,21 +146,57 @@ def main_has_all_artifacts(name: str) -> bool:
     return all(main_has_file(name, f) for f in ("spec.md", "plan.md", "tasks.md"))
 
 
-def main_tasks_unchecked(name: str) -> bool:
-    proc = run_git(["show", f"{MAIN_BRANCH}:specs/{name}/tasks.md"], check=False)
-    if proc.returncode != 0:
-        return False
-    return re.search(r"^[ \t]*- \[ \]", proc.stdout, re.MULTILINE) is not None
+@functools.lru_cache(maxsize=None)
+def history(ref: str) -> tuple[dict[str, frozenset], frozenset]:
+    """ref から辿れる全コミットを読み、(フィーチャーごとの完了ステップ, 実装までマージ済みのフィーチャー) を返す。"""
+    proc = run_git(["log", ref, f"--format=%B{COMMIT_SEP}"], check=False)
+    steps: dict[str, set[str]] = {}
+    merged: set[str] = set()
+    if proc.returncode == 0:
+        for body in proc.stdout.split(COMMIT_SEP):
+            feature = FEATURE_TRAILER_RE.search(body)
+            if feature:
+                steps.setdefault(feature.group(1), set()).update(TRAILER_RE.findall(body))
+            for name, phase in MERGE_SUBJECT_RE.findall(body):
+                if phase in ("coding", "all"):
+                    merged.add(name)
+    return {k: frozenset(v) for k, v in steps.items()}, frozenset(merged)
+
+
+def forget_history() -> None:
+    """コミットやマージで履歴が変わった後に呼ぶ。"""
+    history.cache_clear()
+
+
+def coding_done(name: str) -> bool:
+    """実装工程まで main にマージ済みか（main 上の S11 の記録か、merge(<name>): coding|all のコミットで判定する）。"""
+    steps, merged = history(MAIN_BRANCH)
+    return "S11" in steps.get(name, frozenset()) or name in merged
+
+
+def unchecked_tasks(tasks_file: Path) -> int:
+    if not tasks_file.is_file():
+        return 0
+    return len(UNCHECKED_RE.findall(tasks_file.read_text(encoding="utf-8")))
 
 
 def completed_steps(name: str) -> list[str]:
-    """完了済みのステップ。ブランチ上の trailer に加え、仕様が main にマージ済みなら S2〜S7-3 を完了とみなす。"""
-    found: set[str] = set()
+    """完了済みのステップ。
+
+    - main とブランチの全履歴にある、このフィーチャー名付きの trailer
+    - ブランチ上の main にないコミットの trailer（フィーチャー名がない旧形式も含む）
+    - 仕様が main にマージ済み（tasks.md がある）なら S2〜S7-3
+    - 実装まで main にマージ済みなら全ステップ
+    """
+    found: set[str] = set(history(MAIN_BRANCH)[0].get(name, frozenset()))
     if branch_exists(name):
+        found.update(history(branch_of(name))[0].get(name, frozenset()))
         log = git_out(["log", f"{MAIN_BRANCH}..{branch_of(name)}", "--format=%B"])
         found.update(TRAILER_RE.findall(log))
     if main_has_tasks(name):
         found.update(SPEC_STEPS)
+    if coding_done(name):
+        found.update(ALL_STEPS)
     return [step for step in ALL_STEPS if step in found]
 
 
@@ -157,25 +219,29 @@ def read_spec_order() -> str:
 
 
 def get_all_features() -> list[str]:
-    """docs/feature/spec_order.md（任意）、main の specs/、.worktrees/ からフィーチャー名を集める。"""
-    names: set[str] = set()
+    """フィーチャー名を着手順に並べて返す。
+
+    docs/feature/spec_order.md（任意）にあるものはその並び順（着手順の正本）で先に置き、
+    そこにない main の specs/ と .worktrees/ のものは番号順で後ろに足す。
+    """
+    ordered: list[str] = []
     for match in ORDER_LINE_RE.finditer(read_spec_order()):
         num, slug = match.group(1), match.group(2)
         # 新形式はファイル名が NNN-slug で、そのまま specs/ の名前になる。旧形式は slug だけなので番号を付ける。
-        if re.match(r"^[0-9]{3}-", slug):
-            names.add(slug)
-        else:
-            names.add(f"{int(num):03d}-{slug}")
+        name = slug if re.match(r"^[0-9]{3}-", slug) else f"{int(num):03d}-{slug}"
+        if name not in ordered:
+            ordered.append(name)
+    rest: set[str] = set()
     proc = run_git(["ls-tree", "-d", "--name-only", MAIN_BRANCH, "specs/"], check=False)
     if proc.returncode == 0:
         for line in proc.stdout.splitlines():
             if line.startswith("specs/"):
-                names.add(line[len("specs/"):])
+                rest.add(line[len("specs/"):])
     if WORKTREES_DIR.is_dir():
         for child in WORKTREES_DIR.iterdir():
             if child.is_dir():
-                names.add(child.name)
-    return sorted(n for n in names if n)
+                rest.add(child.name)
+    return ordered + sorted(n for n in rest if n and n not in ordered)
 
 
 def resolve_feature(query: str | None) -> str:
@@ -199,6 +265,14 @@ def resolve_feature(query: str | None) -> str:
         raise HelperError(f"'{query}' に一致するフィーチャーが複数あります: {' '.join(matches)}")
     # 一覧にない新しいフィーチャーは、完全名（NNN-slug）で指定されたときだけ受け付ける。
     if NEW_FEATURE_RE.match(query):
+        number, slug = query.split("-", 1)
+        if re.fullmatch(r"[0-9-]+", slug):
+            raise HelperError(
+                f"'{query}' は範囲指定に見えます。範囲は list の結果から 1 件ずつ選び、完全名か番号で指定してください。")
+        taken = [f for f in get_all_features() if f.startswith(f"{number}-")]
+        if taken:
+            raise HelperError(
+                f"番号 {number} はすでに {' '.join(taken)} が使っています。綴りを確かめるか、別の番号にしてください。")
         return query
     raise HelperError(
         f"'{query}' に一致するフィーチャーが見つかりません（docs/feature/spec_order.md、specs/、.worktrees/ を検索）。"
@@ -216,7 +290,50 @@ def worktree_branch(worktree: Path) -> str | None:
     return proc.stdout.strip() if proc.returncode == 0 else None
 
 
+def update_feature_status(wt: Path, name: str, status: str, only_from: tuple[str, ...] = ()) -> list[str]:
+    """docs/feature/ の機能ファイルの状態欄と、README.md の一覧の状態列を status にする。更新したファイルを返す。
+
+    only_from を指定したときは、今の状態がそのいずれかの場合だけ更新する（状態を後戻りさせないため）。
+    機能ファイルがないプロジェクトでは何もしない。
+    """
+    feature_dir = wt / "docs" / "feature"
+    slug = name.split("-", 1)[1] if re.match(r"^[0-9]{3}-", name) else name
+    target = next((p for p in (feature_dir / f"{name}.md", feature_dir / f"{slug}.md") if p.is_file()), None)
+    if target is None:
+        return []
+    changed: list[str] = []
+    text = target.read_text(encoding="utf-8")
+    m = re.search(r"(\*\*状態\*\*:\s*)([^|\n]+?)(\s*\|)", text)
+    if m is None:
+        return []
+    current = m.group(2).strip()
+    if current == status or (only_from and not any(current.startswith(p) for p in only_from)):
+        return []
+    with open(target, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text[:m.start(2)] + status + text[m.end(2):])
+    changed.append(str(target.relative_to(wt)))
+    readme = feature_dir / "README.md"
+    if readme.is_file():
+        lines = readme.read_text(encoding="utf-8").split("\n")
+        row_re = re.compile(r"^\|\s*\d+\s*\|\s*\[[^\]]*\]\(\./" + re.escape(target.stem) + r"\.md\)\s*\|")
+        updated = False
+        for i, line in enumerate(lines):
+            if row_re.match(line):
+                cells = line.split("|")
+                # ['', ' # ', ' 機能 ', ' 区分 ', ' 状態 ', ' 依存 ', ' 一言 ', '']
+                if len(cells) > 5:
+                    cells[4] = f" {status} "
+                    lines[i] = "|".join(cells)
+                    updated = True
+        if updated:
+            with open(readme, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write("\n".join(lines))
+            changed.append(str(readme.relative_to(wt)))
+    return changed
+
+
 def print_state(name: str, phase: str, wt_state: str) -> None:
+    print(f"REPO_ROOT: {REPO_ROOT}")
     print(f"FEATURE_NAME: {name}")
     print(f"BRANCH: {branch_of(name)}")
     print(f"WORKTREE_DIR: {worktree_of(name)}")
@@ -236,6 +353,9 @@ def parse_args(args: list[str]) -> tuple[str | None, str | None, list[str]]:
         arg = args[i]
         if arg == "--phase":
             phase = args[i + 1] if i + 1 < len(args) else ""
+            i += 2
+            continue
+        if arg == "--skip":  # 値を取るフラグ。値は cmd_next が読む
             i += 2
             continue
         if arg.startswith("--phase="):
@@ -288,9 +408,8 @@ def check_phase_precondition(name: str, phase: str, wt: Path) -> None:
                 f"{name} の spec.md / plan.md / tasks.md が {MAIN_BRANCH} にそろっていません。"
                 "先に speckit-feature または speckit-all を実行してください。",
             )
-    if (phase != "spec" and not wt.is_dir() and not branch_exists(name)
-            and main_has_tasks(name) and not main_tasks_unchecked(name)):
-        raise Precondition("ALREADY_IMPLEMENTED", f"{name} は {MAIN_BRANCH} の tasks.md がすべて完了済みです。")
+    if phase != "spec" and not wt.is_dir() and not branch_exists(name) and coding_done(name):
+        raise Precondition("ALREADY_IMPLEMENTED", f"{name} は実装まで {MAIN_BRANCH} にマージ済みです。")
 
 
 def repo_is_dirty() -> bool:
@@ -363,14 +482,24 @@ def cmd_checkpoint(args: list[str]) -> None:
     if current != branch_of(name):
         raise HelperError(f"{wt} のブランチが '{current}' です。")
 
+    # 機能ファイルの状態欄を進める（仕様を作ったら spec化済み、実装を終えたら 完了）
+    if step == "S2":
+        for path in update_feature_status(wt, name, STATUS_SPECIFIED.format(name=name), only_from=("未着手",)):
+            info(f"==> 状態を更新しました: {path}")
+    elif step == "S11":
+        for path in update_feature_status(wt, name, STATUS_DONE):
+            info(f"==> 状態を更新しました: {path}")
+
     stage_all(wt)
-    run_git(["commit", "-q", "--allow-empty", "-m", subject, "-m", f"Speckit-Step: {step}"], cwd=wt)
+    run_git(["commit", "-q", "--allow-empty", "-m", subject,
+             "-m", f"Speckit-Step: {step}\nSpeckit-Feature: {name}"], cwd=wt)
+    forget_history()
     print(f"CHECKPOINT: {step} {git_out(['rev-parse', '--short', 'HEAD'], cwd=wt)}")
     print(f"NEXT_STEP: {next_step(name, 'all')}")
 
 
 def cmd_finish(args: list[str]) -> None:
-    positional, phase, _ = parse_args(args)
+    positional, phase, flags = parse_args(args)
     phase = require_phase(phase)
     name = resolve_feature(positional)
     branch = branch_of(name)
@@ -379,16 +508,40 @@ def cmd_finish(args: list[str]) -> None:
 
     if not wt.is_dir():
         raise HelperError(f"worktree {wt} がありません。")
-    if last not in completed_steps(name):
-        raise HelperError(f"{phase} 工程の最終ステップ {last} が完了していません（次: {next_step(name, phase)}）。")
+    # worktree の中で実行すると、削除後にシェルが消えたディレクトリに残る（Windows では削除自体が失敗する）
+    cwd = Path.cwd().resolve()
+    if cwd == wt.resolve() or wt.resolve() in cwd.parents:
+        raise HelperError(f"finish は worktree の外（{REPO_ROOT}）で実行してください。`cd {REPO_ROOT}` してから再実行します。")
+    done = completed_steps(name)
+    missing = [step for step in PHASE_STEPS[phase] if step not in done]
+    if missing:
+        raise HelperError(f"{phase} 工程のステップが完了していません（未完了: {' '.join(missing)}）。")
     for filename in ("spec.md", "plan.md", "tasks.md"):
         if not (wt / "specs" / name / filename).is_file():
             raise HelperError(f"{wt / 'specs' / name / filename} がありません。")
+    if phase in ("coding", "all") and "--allow-unchecked" not in flags:
+        remaining = unchecked_tasks(wt / "specs" / name / "tasks.md")
+        if remaining:
+            raise Precondition(
+                "UNCHECKED_TASKS",
+                f"{name} の tasks.md に未完了のタスクが {remaining} 件あります。一覧をユーザーに示し、"
+                "残したままマージしてよいと確認できたら --allow-unchecked を付けて再実行してください。",
+            )
 
     stage_all(wt)
     if not git_ok(["diff", "--cached", "--quiet"], cwd=wt):
-        info("==> worktree の未コミットの変更をコミットします。")
-        run_git(["commit", "-q", "-m", f"chore({name}): finalize remaining changes before merge"], cwd=wt)
+        if "--commit-leftovers" not in flags:
+            files = git_out(["diff", "--cached", "--name-status"], cwd=wt)
+            run_git(["reset", "-q"], cwd=wt)
+            raise Precondition(
+                "LEFTOVER_CHANGES",
+                f"{wt} に、どのステップにも含まれていない変更があります。\n{files}\n"
+                "内容をユーザーに示し、マージに含めてよいと確認できたら --commit-leftovers を付けて再実行してください。"
+                "含めない変更は、ユーザーの了承を得て取り除いてから再実行してください。",
+            )
+        info("==> worktree の残りの変更をコミットします。")
+        run_git(["commit", "-q", "-m", f"chore({name}): マージ前の残りの変更",
+                 "-m", f"Speckit-Feature: {name}"], cwd=wt)
 
     # マージ後の片付けで止まらないよう、マージの前に worktree がクリーンであることを確かめる。
     leftover = git_out(["status", "--porcelain", "--", ".", f":(exclude){FEATURE_JSON}"], cwd=wt)
@@ -400,23 +553,42 @@ def cmd_finish(args: list[str]) -> None:
         raise HelperError(f"{REPO_ROOT} に未コミットの変更があるためマージできません。コミットまたは stash してから再実行してください。")
     current = git_out(["rev-parse", "--abbrev-ref", "HEAD"])
     if current != MAIN_BRANCH:
+        if "--switch" not in flags:
+            raise Precondition(
+                "NOT_ON_MAIN",
+                f"{REPO_ROOT} のブランチが {current} です（マージ先は {MAIN_BRANCH}）。"
+                f"{MAIN_BRANCH} に切り替えてよいかをユーザーに確認し、よければ --switch を付けて再実行してください。",
+            )
         info(f"==> {REPO_ROOT} を {MAIN_BRANCH} に切り替えます（現在: {current}）。")
         run_git(["checkout", "-q", MAIN_BRANCH])
 
-    info(f"==> {branch} を {MAIN_BRANCH} に --no-ff でマージします。")
-    try:
-        git_passthrough(["merge", "--no-ff", "-m", f"merge({name}): {phase}", branch])
-    except HelperError as error:
-        raise HelperError(
-            f"マージで競合しました。{REPO_ROOT} で競合を解消してマージをコミットし、"
-            "もう一度 finish を実行してください（worktree とブランチは残しています）。"
-        ) from error
+    if git_ok(["merge-base", "--is-ancestor", branch, MAIN_BRANCH]):
+        # 競合を解消して手でマージした後の再実行など。ブランチはすでに main に入っているので片付けだけ行う。
+        info(f"==> {branch} はすでに {MAIN_BRANCH} にマージ済みです。片付けだけを行います。")
+    else:
+        info(f"==> {branch} を {MAIN_BRANCH} に --no-ff でマージします。")
+        try:
+            git_passthrough(["merge", "--no-ff", "-m", f"merge({name}): {phase}", branch])
+        except HelperError as error:
+            raise HelperError(
+                f"マージで競合しました。{REPO_ROOT} で競合を解消してマージをコミットし、"
+                "もう一度 finish を実行してください（worktree とブランチは残しています）。"
+            ) from error
+    forget_history()
 
     info("==> worktree とブランチを削除します。")
-    # 変更はすべてマージ済みで、残るのは無視対象のローカル状態（feature.json など）だけなので --force で削除する。
+    ignored = [line[3:] for line in git_out(["status", "--porcelain", "--ignored", "--untracked-files=normal"], cwd=wt)
+               .splitlines() if line.startswith("!! ") and line[3:].rstrip("/") != FEATURE_JSON]
+    if ignored:
+        info("==> 次の無視対象のファイルは worktree と一緒に削除されます（.env など必要なものはメインの作業ツリーに控えてください）:")
+        for path in ignored:
+            info(f"      {path}")
+    # 変更はすべてマージ済みで、残るのは無視対象のローカル状態だけなので --force で削除する。
     run_git(["worktree", "remove", "--force", str(wt)])
     git_passthrough(["branch", "-d", branch])
     print(f"FINISHED: {name} ({phase})")
+    if ignored:
+        print(f"REMOVED_IGNORED: {' '.join(ignored)}")
     print(f"MERGE_COMMIT: {git_out(['rev-parse', '--short', 'HEAD'])}")
 
 
@@ -449,11 +621,13 @@ def cmd_status(_: list[str]) -> None:
         has_tasks = main_has_tasks(name)
         if has_tasks:
             spec_col = "完了"
+        elif "S7-3" in done:
+            spec_col = "完了（未マージ）"
         elif done:
             spec_col = "作業中"
         else:
             spec_col = "未着手"
-        if has_tasks and not main_tasks_unchecked(name):
+        if coding_done(name):
             coding_col = "完了"
         elif "S8" in done or "S9" in done:
             coding_col = "作業中"
@@ -468,7 +642,13 @@ def cmd_status(_: list[str]) -> None:
 def cmd_next(args: list[str]) -> None:
     _, phase, _ = parse_args(args)
     phase = require_phase(phase)
-    features = get_all_features()
+    skip: set[str] = set()
+    for i, arg in enumerate(args):
+        if arg == "--skip" and i + 1 < len(args):
+            skip.update(resolve_feature(n) for n in args[i + 1].split(",") if n)
+        elif arg.startswith("--skip="):
+            skip.update(resolve_feature(n) for n in arg[len("--skip="):].split(",") if n)
+    features = [f for f in get_all_features() if f not in skip]
 
     # 途中のまま残っている worktree を最優先にする。
     for name in features:
@@ -484,10 +664,10 @@ def cmd_next(args: list[str]) -> None:
         if phase == "spec" and not has_tasks:
             print(name)
             return
-        if phase == "coding" and has_tasks and main_tasks_unchecked(name):
+        if phase == "coding" and has_tasks and not coding_done(name):
             print(name)
             return
-        if phase == "all" and (not has_tasks or main_tasks_unchecked(name)):
+        if phase == "all" and (not has_tasks or not coding_done(name)):
             print(name)
             return
     print("")
@@ -510,22 +690,27 @@ Commands:
   state <feature> --phase spec|coding|all
         変更せずに進捗と次のステップを表示する
   checkpoint <feature> <step> <subject>
-        worktree の変更をすべてコミットし、trailer "Speckit-Step: <step>" で完了を記録する（変更がなくても空コミットで記録）
-  finish <feature> --phase spec|coding|all
-        最終ステップの完了を確認し、{MAIN_BRANCH} に --no-ff でマージして worktree とブランチを削除する
+        worktree の変更をすべてコミットし、trailer "Speckit-Step: <step>" と "Speckit-Feature: <feature>" で
+        完了を記録する（変更がなくても空コミットで記録）。S2 と S11 では機能ファイルの状態欄も更新する
+  finish <feature> --phase spec|coding|all [--allow-unchecked] [--commit-leftovers] [--switch]
+        最終ステップの完了を確認し、{MAIN_BRANCH} に --no-ff でマージして worktree とブランチを削除する。
+        worktree の外で実行する。coding / all では tasks.md に未完了があると止まる（--allow-unchecked で続行）。
+        どのステップにも含まれない変更があると止まる（--commit-leftovers で続行）。
+        メインの作業ツリーが main 以外にいると止まる（--switch で main に切り替えて続行）
   abort <feature> [--yes]
         worktree とブランチを破棄する。--yes がなければ対象を表示するだけ
   list
-        全フィーチャー名を番号順に表示する（範囲指定の展開に使う）
+        全フィーチャー名を着手順（spec_order.md の並び、その後に番号順）で表示する
   status
         全フィーチャーの仕様・実装・worktree の状況を表示する
-  next --phase spec|coding|all
-        次に着手すべきフィーチャーを表示する（途中の worktree を優先）
+  next --phase spec|coding|all [--skip <feature,...>]
+        次に着手すべきフィーチャーを表示する（途中の worktree を優先。--skip で除外）
   resolve <query>
         番号やスラッグからフィーチャー名を決める
 
 Steps: {' '.join(ALL_STEPS)}（S1 は ensure、S12 は finish）
-Exit codes: 0 = 成功, 1 = エラー, 3 = 前提条件を満たさない（PRECONDITION: <code> を stderr に出力）"""
+Exit codes: 0 = 成功, 1 = エラー, 3 = 前提条件を満たさない（PRECONDITION: <code> を stderr に出力）
+Environment: SPECKIT_MAIN_BRANCH（既定のブランチ名。既定値 main）"""
 
 COMMANDS = {
     "ensure": cmd_ensure,
@@ -557,6 +742,9 @@ def main(argv: list[str]) -> int:
             raise HelperError(f"不明なコマンド '{action}' です。'worktree_helper.py help' で使い方を確認してください。")
         REPO_ROOT = find_repo_root()
         WORKTREES_DIR = REPO_ROOT / ".worktrees"
+        if not git_ok(["rev-parse", "--verify", "-q", f"refs/heads/{MAIN_BRANCH}"]):
+            raise HelperError(
+                f"ブランチ {MAIN_BRANCH} がありません。既定のブランチが別の名前なら、環境変数 SPECKIT_MAIN_BRANCH にその名前を指定してください。")
         command(argv[1:])
     except Precondition as stop:
         print(f"PRECONDITION: {stop.code}", file=sys.stderr)
