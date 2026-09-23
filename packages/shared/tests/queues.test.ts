@@ -14,6 +14,16 @@ describe("キューの設定", () => {
     expect(opts.retryLimit! * opts.retryDelay!).toBeGreaterThanOrEqual(30 * 60);
   });
 
+  it("商標の照合は 30 秒で打ち切り、5 秒後に 1 回だけ再試行する（001 research R5）", () => {
+    expect(QUEUE_OPTIONS[QUEUES.trademarkCheck]).toMatchObject({
+      retryLimit: 1,
+      retryDelay: 5,
+      expireInSeconds: 30,
+      deleteAfterSeconds: 86_400,
+    });
+    expect(QUEUES.expireTrademarkChecks).toBe("expire-trademark-checks");
+  });
+
   it("ensureQueues はないキューだけを作る", async () => {
     const existing = new Set<string>([QUEUES.sendEmail]);
     const boss = {
