@@ -18,8 +18,9 @@ python3 .claude/skills/speckit-concept-2-feature/scripts/validate.py docs/featur
 
 | 被参照 | 機能 | 意味 |
 |---|---|---|
-| 5 | `000-app-basic` | 個人アカウントとログイン、運営者ロールを提供し、すべての機能の前提になる |
+| 6 | `000-app-basic` | 個人アカウントとログイン、運営者ロールを提供し、すべての機能の前提になる |
 | 4 | `001-trademark-batch-check` | チェック・候補の実体と比較表を持ち、ほかのチェックの種類と履歴がすべてこれに載る |
+| 1 | `005-operator-console` | 費用の集計を持ち、運用基盤の費用の上限による停止がこれを使う |
 
 ## 段階分け
 
@@ -37,11 +38,15 @@ flowchart TD
         D["004-check-history"]
         E["005-operator-console"]
     end
+    subgraph M4["MVP-S4: 本番公開の前の運用基盤"]
+        N["999-app-nfr"]
+    end
     Z --> A
     A --> B
     A --> C
     A --> D
     A --> E
+    E --> N
 ```
 
 ### MVP
@@ -60,6 +65,10 @@ flowchart TD
 - **3. [ドメイン・SNS の空き確認](./003-domain-sns-check.md)**: 選んだ TLD の空きと SNS の使用状況（YouTube は自動、X・Instagram・TikTok はリンク）を比較表に加える
 - **4. [チェック履歴の管理](./004-check-history.md)**: 過去のチェックを本人だけが見返し、削除できる
 - **5. [運営者の管理画面とお問い合わせ](./005-operator-console.md)**: 利用者の停止、上限の設定、外部 API の利用量、監査ログ、お問い合わせ
+
+#### MVP-S4: 本番公開の前の運用基盤
+
+- **999. [運用基盤](./999-app-nfr.md)**: 自動デプロイ、監視、バックアップ、脆弱性スキャン、費用の上限による停止
 
 ### 拡張
 

@@ -24,6 +24,7 @@
 | ファイル | 何が書いてあるか |
 |---|---|
 | [premises.md](./premises.md) | **前提の正本。** 入力の仕分け、必須項目の充足状況、ヒアリングの質疑記録 |
+| [../nfr.md](../nfr.md) | **横断の非機能要件の正本。** 全機能が守る目標（運用基盤は 999-app-nfr で実装する） |
 | [spec_order.md](./spec_order.md) | **着手順序の正本。** MVP / 拡張ごとの段階分け、被参照数、依存グラフ |
 | [../concept/backlog.md](../concept/backlog.md) | **機能候補の正本。** まだ機能化していない候補と却下した候補。`speckit-concept-2-feature --backlog <ID>` で機能化する |
 
@@ -39,8 +40,9 @@
 | 3 | [ドメイン・SNS の空き確認](./003-domain-sns-check.md) | MVP | 未着手 | 000-app-basic, 001-trademark-batch-check | 選んだ TLD の空きと SNS の使用状況（YouTube は自動、X・Instagram・TikTok はリンク）を比較表に加える |
 | 4 | [チェック履歴の管理](./004-check-history.md) | MVP | 未着手 | 000-app-basic, 001-trademark-batch-check | 過去のチェックを本人だけが見返し、削除できる |
 | 5 | [運営者の管理画面とお問い合わせ](./005-operator-console.md) | MVP | 未着手 | 000-app-basic, 001-trademark-batch-check | 利用者の停止、上限の設定、外部 API の利用量、監査ログ、お問い合わせ |
+| 999 | [運用基盤](./999-app-nfr.md) | MVP | 未着手 | 000-app-basic, 005-operator-console | 自動デプロイ、監視、バックアップ、脆弱性スキャン、費用の上限による停止 |
 
-**件数**: 機能ファイル **6 件**（MVP 6 / 拡張 0）。
+**件数**: 機能ファイル **7 件**（MVP 7 / 拡張 0）。
 
 ## 検証
 
