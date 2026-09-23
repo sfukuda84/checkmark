@@ -61,6 +61,8 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 - [ ] T025 [P] 検証用データを作る。同一、称呼同一、1 音違い、清濁違い、長音の有無、区分違い、無関係、英字の商標（称呼つき）の組を含める。`apps/importer/fixtures/sample-trademarks.tsv`
 - [ ] T026 [P] 取り込みの手順を書く（申込が通るまでの扱い、`JpoBulkMapping` の未実装を含む。NFR-OP-006）。`docs/ops/trademark-import.md`
 
+- [ ] T067 利用回数を数える・戻す基本処理（`chargeCandidates`、`refundCandidate`。`charged` を false にしてから `charged_period` の行から引き、二重に戻さない）を、テストを先に書いて作る。web（実行、やり直し、ジョブ登録の失敗）と worker（最後の試行の失敗、期限切れ）の両方から使う（FR-026、FR-026a、research R6）。`packages/db/src/usage-ledger.ts`、`packages/db/tests/usage-ledger.test.ts`
+
 **Checkpoint**: 照合のロジックと商標データの取り込みができた
 
 ---
@@ -145,7 +147,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 
 - [ ] T056 [P] [US5] 期間と残りの計算の単体テストを書く（日本時間の暦月、月末の境界、次に戻る日時、上限値の既定 50 と設定値）。`apps/web/tests/unit/usage.test.ts`
 - [ ] T057 [P] [US5] 利用回数の結合テストを書く（FR-026、FR-026a、FR-027、FR-027a。数える、超えたら `QUOTA_EXCEEDED`、同時の実行で超えない、実行中 3 件で `TOO_MANY_RUNNING`、`unknown` で戻る、二重に戻さない、やり直しで数える）。`apps/web/tests/integration/usage.test.ts`
-- [ ] T058 [US5] T056 と T057 を通す実装を書く。`apps/web/src/checks/usage.ts`、`start-check.ts` と `retry.ts` へのロックと数え方、worker の戻し（`apps/worker/src/jobs/refund.ts`）
+- [ ] T058 [US5] T056 と T057 を通す実装を書く。`apps/web/src/checks/usage.ts`（期間、残り、上限値）、`start-check.ts` と `retry.ts` への利用者ごとのロックと、残りと実行中の件数の確認（数える・戻すは T067 の `usage-ledger.ts` を使う）
 - [ ] T059 [US5] 入力画面とトップに残りと戻る日時を出し、残り 0 件なら実行できないようにする。`apps/web/src/app/(app)/checks/new/page.tsx`、`apps/web/src/app/(app)/page.tsx`
 - [ ] T060 [US5] E2E を書く（残りの表示、超えたときのエラー）。`apps/web/tests/e2e/checks-us5.spec.ts`
 
@@ -167,7 +169,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 ### Phase Dependencies
 
 - **Setup（Phase 1）**: 依存なし
-- **Foundational（Phase 2）**: Setup の後。すべてのストーリーの前提になる
+- **Foundational（Phase 2）**: Setup の後。すべてのストーリーの前提になる。T067（利用回数の数える・戻す）は T006 の後で、US1 の T034、T036 より前に終える
 - **US1（Phase 3）**: Foundational の後。ほかのストーリーの前提になる（チェックの実体、ジョブ、結果画面）
 - **US2（Phase 4）**: US1 の後
 - **US3（Phase 5）**: US1 の後。US2 と並行できる

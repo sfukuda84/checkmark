@@ -100,6 +100,7 @@ packages/trademark/            # @app/trademark（新規。DB に依存しない
 ├── src/jplatpat.ts            # 公式サービスへのリンク（R8）
 └── tests/
 
+packages/db/src/usage-ledger.ts # 利用回数を数える・戻す（web と worker で共有。research R6）
 packages/db/src/schema/
 ├── trademarks.ts              # trademark_datasets、trademark_marks、trademark_readings
 └── checks.ts                  # checks、check_candidates、trademark_results、usage_counters、app_settings
@@ -115,8 +116,8 @@ apps/web/src/
 │   ├── usage.ts               # 残り、期間、上限値
 │   └── columns.tsx            # 比較表の列の定義（R7）
 ├── app/(app)/page.tsx         # トップ（直近 5 件、残り）
-├── app/(app)/checks/new/      # 入力画面
-├── app/(app)/checks/[id]/     # 結果画面（比較表、自動の読み直し）
+├── app/(app)/checks/new/      # 入力画面（page.tsx、check-form.tsx、class-picker.tsx）
+├── app/(app)/checks/[id]/     # 結果画面（page.tsx、auto-refresh.tsx）
 └── app/(app)/checks/actions.ts# startCheck、retryCandidate
 
 apps/worker/src/jobs/

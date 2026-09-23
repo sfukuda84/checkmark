@@ -11,12 +11,12 @@
 | 項目 | 内容 |
 |---|---|
 | 入力 | `FormData { candidates: string（改行区切り。各行 "候補名" または "候補名 / ヨミ"）, classes: string[]（"1"〜"45"、0 個以上） }` |
-| 成功 | チェックを作り、候補ごとのジョブを登録して `/checks/{id}` へ移す |
+| 成功 | チェックを作り、候補ごとのジョブを登録して `/checks/{id}` へ移す。重複をまとめた場合は `/checks/{id}?merged={まとめた件数}` へ移す |
 | 失敗 | `{ error: CheckErrorCode, details?: { line: number; reason: string }[], remaining?: number, limit?: number }` |
 
 処理の順:
 
-1. 入力を解析する（空行を除く、正規化、重複をまとめる。research R2）。まとめた件数は結果画面に `merged` として示す。
+1. 入力を解析する（空行を除く、正規化、重複をまとめる。research R2）。まとめた件数は、移動先の URL の `merged` で結果画面に渡す（FR-003）。
 2. 検証する: 候補が 0 件 → `NO_CANDIDATES`、10 件超 → `TOO_MANY_CANDIDATES`、不正な候補 → `INVALID_CANDIDATE`（行番号と理由）、不正な区分 → `INVALID_CLASS`。
 3. トランザクション（利用者ごとのアドバイザリロック）で、実行中のチェックが 3 件以上 → `TOO_MANY_RUNNING`、残りが足りない → `QUOTA_EXCEEDED`（`remaining`、`limit` を返す）。通れば、チェック、候補、利用回数を書く。
 4. コミットの後、候補ごとにジョブを登録する。登録に失敗した候補は `unknown`（`FAILED`）にして利用回数を戻す。
