@@ -1,0 +1,19 @@
+{
+  "name": "@app/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./logger": "./src/logger.ts",
+    "./env": "./src/env.ts",
+    "./time": "./src/time.ts",
+    "./queues": "./src/queues.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "pino": "^10.3.1",
+    "zod": "^4.6.5"
+  }
+}

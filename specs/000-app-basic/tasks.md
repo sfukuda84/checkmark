@@ -25,7 +25,7 @@ description: "アプリ基盤（000-app-basic）の実装タスク"
 
 **Purpose**: ワークスペース、ツール、CI の初期化
 
-- [ ] T001 ワークスペースのルートを作る。`package.json`（scripts: `dev`、`build`、`lint`、`typecheck`、`test`、`test:e2e`、`db:migrate`、`format`）、`pnpm-workspace.yaml`、`tsconfig.base.json`、`.tool-versions`（nodejs 22、pnpm 11）、`.gitignore` への `.mail-outbox/`、`.next/`、`test-results/`、`playwright-report/` の追記
+- [ ] T001 ワークスペースのルートを作る。`package.json`（scripts: `dev`、`build`、`lint`、`typecheck`、`test`、`test:e2e`、`db:migrate`、`format`）、`pnpm-workspace.yaml`、`tsconfig.base.json`、`.tool-versions`（nodejs 24.21.0、pnpm 11.15.0）、`.gitignore` への `.mail-outbox/`、`.next/`、`test-results/`、`playwright-report/` の追記
 - [ ] T002 [P] ESLint（typescript-eslint、eslint-config-next）と Prettier を設定する。`eslint.config.mjs`、`.prettierrc`、`.prettierignore`
 - [ ] T003 [P] 開発用の PostgreSQL 17 を `compose.dev.yaml` に定義し、`.env.example` に contracts/jobs-and-cli.md の環境変数をすべて載せる
 - [ ] T004 [P] `packages/shared` を作る。`src/env.ts`（Zod による環境変数の検証）、`src/time.ts`（現在時刻の注入）、`src/logger.ts`（pino。`password`、`token`、`session`、`cookie`、`authorization`、`email`、`candidate` を redact する）。先に `packages/shared/tests/logger.test.ts` で伏せ字のテストを書く（FR-030、NFR-SE-004）

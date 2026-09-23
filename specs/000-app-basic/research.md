@@ -7,7 +7,7 @@
 ## R1. バージョンの固定
 
 - **Decision**:
-  - Node.js 22 LTS（pg-boss 12 は `>=22.12.0`）
+  - Node.js 24 LTS（24.21.0。pg-boss 12 は `>=22.12.0`。2026-09-23 に 22 から 24 に変えた。docs/architecture.md の変更履歴）
   - Next.js 16.3、React 19
   - Better Auth 1.7.5、Drizzle ORM 0.45.3、drizzle-kit 0.31、pg 8、pg-boss 12
   - Resend SDK 6、Zod 4

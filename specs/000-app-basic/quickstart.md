@@ -6,7 +6,8 @@
 
 ## 前提
 
-- Node.js 22 LTS、pnpm 11、Docker（Compose v2）
+- Node.js 24 LTS（`.tool-versions`）、pnpm 11、Docker（Compose v2）
+- 開発用の PostgreSQL は既定で 55433 番で起動する（`DEV_PG_PORT` で変えられる）
 - `.env.example` をコピーした `.env`（開発では `MAIL_TRANSPORT=file`）
 - Google のログインを手動で確かめる場合だけ、Google Cloud の OAuth クライアント（リダイレクト URI は `http://localhost:3000/api/auth/callback/google`）
 

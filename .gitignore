@@ -61,3 +61,11 @@ target/
 .claude/worktrees/
 CLAUDE.local.md
 .gemini/.env
+
+# ===== アプリ（000-app-basic） =====
+.next/
+next-env.d.ts
+.mail-outbox/
+test-results/
+playwright-report/
+*.tsbuildinfo

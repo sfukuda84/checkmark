@@ -20,7 +20,7 @@
 
 ## Technical Context
 
-**Language/Version**: TypeScript 6.0、Node.js 22 LTS
+**Language/Version**: TypeScript 6.0、Node.js 24 LTS
 
 **Primary Dependencies**:
 - Next.js 16.3（App Router）、React 19

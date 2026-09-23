@@ -4,7 +4,7 @@
 
 データベースは PostgreSQL、スキーマは Drizzle ORM（`packages/db/src/schema/`）で定義する。Better Auth が使うテーブル（`user`、`session`、`account`、`verification`、`rate_limit`）は、Better Auth の Drizzle アダプタの形に合わせる。pg-boss のテーブルは、pg-boss が自分のスキーマ（`pgboss`）に作る。
 
-時刻はすべて `timestamptz`（UTC）で持つ。ID は、Better Auth のテーブルでは Better Auth が生成する文字列、独自のテーブルでは UUID v7 とする。
+時刻はすべて `timestamptz`（UTC）で持つ。ID は、Better Auth のテーブルでは Better Auth が生成する文字列、独自のテーブルではアプリで生成する UUID（v4、`crypto.randomUUID()`）とする。PostgreSQL 17 には `uuidv7()` がないためである。
 
 ## 1. user（アカウント）
 
