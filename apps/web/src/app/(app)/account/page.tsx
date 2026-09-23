@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { account, eq, getDb } from "@app/db";
+import { getDb } from "@app/db";
 import { hasPassword } from "@/auth/account-policy";
+import { getLoginMethods } from "@/auth/login-methods";
 import { requireUser } from "@/auth/guards";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ChangeEmailForm, DeleteAccountButton } from "./account-actions";
@@ -10,10 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ changed?: string }> }) {
   const user = await requireUser();
   const { changed } = await searchParams;
-  const accounts = await getDb()
-    .select({ providerId: account.providerId })
-    .from(account)
-    .where(eq(account.userId, user.id));
+  const accounts = await getLoginMethods(getDb(), user.id);
   const withPassword = hasPassword(accounts);
   return (
     <>

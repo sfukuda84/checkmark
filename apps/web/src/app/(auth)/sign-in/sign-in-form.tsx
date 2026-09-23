@@ -8,9 +8,9 @@ import { FormError } from "@/components/form-error";
 import { GoogleButton } from "@/components/google-button";
 import { errorMessage } from "@/lib/error-messages";
 
-export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function SignInForm({ googleEnabled, initialError }: { googleEnabled: boolean; initialError: string | null }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -64,7 +64,7 @@ export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
       {googleEnabled && (
         <>
           <p className="muted">または</p>
-          <GoogleButton label="Google でログイン" errorCallbackURL="/sign-up?error=google" />
+          <GoogleButton label="Google でログイン" errorCallbackURL="/sign-in?error=google" />
         </>
       )}
       <p>

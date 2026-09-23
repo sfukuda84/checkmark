@@ -28,7 +28,7 @@ export function createAuth(deps: AuthDeps) {
   const env = serverEnv(deps.env ?? process.env);
   const clock = deps.clock ?? systemClock;
   const logger = createLogger({ name: "auth" });
-  const hooks = createHooks({ ...deps, clock, logger, supportContact: env.SUPPORT_CONTACT });
+  const hooks = createHooks({ ...deps, clock, logger, trustedProxies: env.TRUSTED_PROXY_IPS });
 
   const googleEnabled = !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 

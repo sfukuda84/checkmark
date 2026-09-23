@@ -1,6 +1,7 @@
-import { account, eq, getDb } from "@app/db";
+import { getDb } from "@app/db";
 import { serverEnv } from "@app/shared/env";
 import { hasPassword } from "@/auth/account-policy";
+import { getLoginMethods } from "@/auth/login-methods";
 import { requireUser } from "@/auth/guards";
 import { safeNextPath } from "@/lib/error-messages";
 import { ReauthForm } from "./reauth-form";
@@ -10,10 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function ReauthPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const user = await requireUser();
   const { next } = await searchParams;
-  const accounts = await getDb()
-    .select({ providerId: account.providerId })
-    .from(account)
-    .where(eq(account.userId, user.id));
+  const accounts = await getLoginMethods(getDb(), user.id);
   const env = serverEnv();
   return (
     <>

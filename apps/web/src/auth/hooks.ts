@@ -1,4 +1,4 @@
-import { eq, account, consents, user as userTable, verification, type Database } from "@app/db";
+import { eq, consents, user as userTable, verification, type Database } from "@app/db";
 import { createAuthMiddleware, getSessionFromCtx, isAPIError } from "better-auth/api";
 import type { Logger } from "@app/shared/logger";
 import type { Clock } from "@app/shared/time";
@@ -7,6 +7,8 @@ import type { EmailEnqueuer } from "@/jobs/client";
 import { isValidPendingConsent, PENDING_CONSENT_COOKIE, readCookie } from "@/legal/consent";
 import { CURRENT_VERSIONS } from "@/legal/registry";
 import { canChangeEmail, hasPassword, isReauthFresh } from "./account-policy";
+import { clientIp } from "./client-ip";
+import { getLoginMethods } from "./login-methods";
 import {
   accountSuspended,
   consentRequired,
@@ -26,7 +28,7 @@ export interface HookDeps {
   limiter: AccountRateLimiter;
   clock: Clock;
   logger: Logger;
-  supportContact: string;
+  trustedProxies: string[];
 }
 
 /** 試行の制限をかける操作（research R4）。 */
@@ -48,21 +50,17 @@ interface RequestLike {
   request?: Request;
 }
 
-function clientInfo(ctx: RequestLike | null | undefined): { ipAddress: string | null; userAgent: string | null } {
-  const headers = ctx?.headers ?? ctx?.request?.headers;
-  const forwarded = headers?.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return {
-    ipAddress: forwarded || headers?.get("x-real-ip") || null,
-    userAgent: headers?.get("user-agent") ?? null,
-  };
-}
-
-function requestInfo(request?: Request): { ipAddress: string | null; userAgent: string | null } {
-  return clientInfo(request ? { headers: request.headers } : null);
-}
-
 export function createHooks(deps: HookDeps) {
-  const { db, mailer, pwned, limiter, clock, logger } = deps;
+  const { db, mailer, pwned, limiter, clock, logger, trustedProxies } = deps;
+
+  function clientInfo(ctx: RequestLike | null | undefined): { ipAddress: string | null; userAgent: string | null } {
+    const headers = ctx?.headers ?? ctx?.request?.headers;
+    return { ipAddress: clientIp(headers, trustedProxies), userAgent: headers?.get("user-agent") ?? null };
+  }
+
+  function requestInfo(request?: Request) {
+    return clientInfo(request ? { headers: request.headers } : null);
+  }
 
   async function findUserIdByEmail(email: string | undefined): Promise<string | null> {
     if (!email) return null;
@@ -74,9 +72,7 @@ export function createHooks(deps: HookDeps) {
     return row?.id ?? null;
   }
 
-  async function accountsOf(userId: string) {
-    return db.select({ providerId: account.providerId }).from(account).where(eq(account.userId, userId));
-  }
+  const accountsOf = (userId: string) => getLoginMethods(db, userId);
 
   async function safeRecord(...args: Parameters<typeof recordAuthEvent> extends [unknown, ...infer R] ? R : never) {
     try {
