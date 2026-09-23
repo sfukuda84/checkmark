@@ -35,14 +35,17 @@ describe("ResendTransport", () => {
       emails: { send: vi.fn().mockResolvedValue({ data: null, error: { name: "rate_limit", message: "Too many" } }) },
     };
     const t = new ResendTransport({ client, from: "from@example.com", timeoutMs: 1000 });
-    const err = await t.send(message).catch((e: unknown) => e as Error);
+    const err = (await t.send(message).then(
+      () => null,
+      (e: unknown) => e as Error,
+    ))!;
     expect(err).toBeInstanceOf(Error);
     expect(err.message).toContain("rate_limit");
     expect(err.message).not.toContain("a@example.com");
   });
 
   it("タイムアウトしたら例外にする", async () => {
-    const client: ResendLike = { emails: { send: vi.fn(() => new Promise(() => {})) } };
+    const client: ResendLike = { emails: { send: vi.fn(() => new Promise<never>(() => {})) } };
     const t = new ResendTransport({ client, from: "from@example.com", timeoutMs: 20 });
     await expect(t.send(message)).rejects.toThrow(/タイムアウト/);
   });

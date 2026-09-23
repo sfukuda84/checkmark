@@ -16,14 +16,14 @@ Better Auth の標準のエンドポイントは `/api/auth/*` に置く（`apps
 | 確認 | `GET /api/auth/verify-email?token=` | — |
 | 再設定の依頼 | `POST /api/auth/request-password-reset` | before: 試行の制限。Google だけのアカウントなら、Google でのログインの案内メールに差し替える |
 | 再設定 | `POST /api/auth/reset-password` | before: 漏えいパスワードの確認。after: 認証の記録、全セッションの失効 |
-| メールアドレスの変更 | `POST /api/auth/change-email` | before: パスワードを持つか、再認証が 10 分以内かの確認。確認後: 認証の記録、古いアドレスへの通知 |
+| メールアドレスの変更 | `POST /api/auth/change-email` | before: パスワードを持つか、再認証が 10 分以内かの確認。使われているアドレスには、Better Auth が何もせず成功を返す（存在を漏らさない。FR-014）。確認（`GET /api/auth/verify-email`）の後: 認証の記録、古いアドレスへの通知 |
 | 退会 | `POST /api/auth/delete-user` | before: 再認証が 10 分以内かの確認。直前: 認証の記録（`account_deleted`） |
 
 ## 独自のエンドポイント・Server Action
 
 | 名前 | 入力 | 出力 | エラーコード |
 |---|---|---|---|
-| `POST /api/auth/reauth/password`（Better Auth のプラグインとして追加） | `{ password: string }` | `{ ok: true }`。セッションの `reauthenticated_at` を今にする | `INVALID_PASSWORD`、`NO_PASSWORD`、`TOO_MANY_ATTEMPTS` |
+| Server Action `reauthenticate`（`apps/web/src/app/(app)/account/actions.ts`。Better Auth の `verifyPassword` で照合する） | `FormData { password }` | `{ ok: true }`。セッションの `reauthenticated_at` を今にする | `INVALID_PASSWORD`、`NO_PASSWORD`、`TOO_MANY_ATTEMPTS` |
 | Server Action `acceptConsent` | `{ documents: ("terms"｜"privacy")[] }` | 現行の版の同意を記録し、`/` へ移す | `CONSENT_OUTDATED`（画面を開いた後に版が変わった） |
 | Server Action `startSignUpConsent` | `{ agreed: true }` | `pending_consent` の Cookie（HttpOnly、SameSite=Lax、10 分）を発行する | `CONSENT_REQUIRED` |
 | Server Action `setCookieConsent` | `{ optional: boolean }` | Cookie `cookie_consent` を 1 年で発行する | — |
@@ -41,5 +41,4 @@ Better Auth の標準のエンドポイントは `/api/auth/*` に置く（`apps
 | `ACCOUNT_SUSPENDED` | 403 | `/suspended` へ移す |
 | `REAUTH_REQUIRED` | 403 | `/account/reauth` へ移す |
 | `EMAIL_CHANGE_NOT_ALLOWED` | 403 | Google だけのアカウントでは変更できないことを示す |
-| `EMAIL_UNAVAILABLE` | 400 | 「このメールアドレスには変更できません」。ほかのアカウントの存在を示さない |
 | `TOKEN_INVALID` | 400 | リンクが無効か期限切れであることと、再依頼への導線を示す |

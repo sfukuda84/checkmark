@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   // ワークスペースの TypeScript のパッケージをそのまま取り込む。
   transpilePackages: ["@app/shared", "@app/db", "@app/mail"],
   poweredByHeader: false,
+  // 規約の本文は fs で読むため、standalone の出力に明示して含める。
+  outputFileTracingIncludes: { "/**/*": ["./content/legal/**/*"] },
   serverExternalPackages: ["pg", "pg-boss", "pino"],
   async headers() {
     return [

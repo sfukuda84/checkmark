@@ -110,12 +110,14 @@ apps/web/                    # @app/web
 │   │   ├── auth.ts          # Better Auth の設定
 │   │   ├── auth-client.ts
 │   │   ├── hooks.ts         # before / after / databaseHooks
-│   │   ├── reauth-plugin.ts # /reauth/password
+│   │   ├── reauth.ts        # パスワードの再入力による再認証（verifyPassword）
+│   │   ├── access.ts、access-state.ts # 入口の判定（純粋関数と、DB を読む部分）
 │   │   ├── guards.ts        # requireUser, requireOperator
+│   │   ├── operator-role.ts # 運営者のロールの付与（CLI から使う）
 │   │   ├── rate-limit.ts    # アカウントごとの制限
 │   │   ├── account-policy.ts# Google だけのアカウントの制限
 │   │   └── pwned.ts         # PwnedPasswordChecker
-│   ├── legal/registry.ts、consent.ts
+│   ├── legal/registry.ts、consent.ts、accept.ts、document.ts、cookie-consent.ts
 │   ├── events/auth-events.ts
 │   ├── jobs/client.ts       # pg-boss（送信のみ）
 │   └── components/          # フォーム、Cookie のバナー
@@ -142,7 +144,7 @@ packages/mail/               # @app/mail
 └── src/templates/           # 確認、再設定、変更の確認と通知、Google だけの案内
 
 packages/shared/             # @app/shared
-└── src/logger.ts、env.ts、time.ts
+└── src/logger.ts、env.ts、time.ts、queues.ts
 ```
 
 **Structure Decision**: pnpm ワークスペースで、`apps/web`（Next.js）と `apps/worker`（pg-boss）の 2 つの実行単位と、共有の `packages/db`、`packages/mail`、`packages/shared` に分ける。`001` で `apps/importer` を足す（research R2）。

@@ -68,7 +68,8 @@
      - `customRules`:
        - `/sign-in/email` と `/request-password-reset` は `{ window: 900, max: 10 }`
        - `/send-verification-email` は `{ window: 3600, max: 3 }`
-     - 接続元は、Caddy が付ける `x-forwarded-for` で判定する（`advanced.ipAddress`）。
+     - 接続元は、Caddy が付ける `x-forwarded-for` で判定する（`advanced.ipAddress.trustedProxies`）。
+     - 結合テスト（`NODE_ENV=test`）では、接続元ごとの制限を切る（同じ接続元から多数の試行をするため）。アカウントごとの制限は常に有効である。
   2. **アカウントごと**: 独自に実装する。
      - Better Auth の `hooks.before` で、上の 3 つのパスについて、入力されたメールアドレスの SHA-256 をキーに、`rate_limit_buckets` テーブルで数える。
      - 15 分に 10 回（確認メールの送り直しは 1 時間に 3 回）を超えたら、`429` とエラーコード `TOO_MANY_ATTEMPTS` を返す。
@@ -94,8 +95,8 @@
 
 - **Decision**:
   - セッションに `reauthenticatedAt` を持たせる（Better Auth の session の追加フィールド）。
-  - **パスワードでログインできる利用者**: 独自の Server Action `reauthenticate(password)` でパスワードを照合する。照合には、Better Auth の `ctx.context.password.verify` を使う独自エンドポイント `/reauth/password` を設ける。成功したら `reauthenticatedAt` を今にする。
-  - **Google だけの利用者**: Google でのログインし直し（`signIn.social` に `prompt: "login"`）を求める。ログインし直すとセッションが作り直される。
+  - **パスワードでログインできる利用者**: Server Action `reauthenticate(password)` でパスワードを照合する。照合には、Better Auth の標準のサーバー専用エンドポイント `verifyPassword` を使う（実装時に存在を確かめ、独自のエンドポイントは作らないことにした）。成功したら `reauthenticatedAt` を今にする。
+  - **Google だけの利用者**: Google でのログインし直しを求める。ログインし直すとセッションが作り直される。Better Auth は `prompt` を要求ごとに変えられないため、Google の設定で `prompt: "select_account"` にし、毎回アカウントの選択を求める。
   - **どの手段でも**: `databaseHooks.session.create.before` で、新しく作るセッションの `reauthenticatedAt` を今にする。したがって、ログインの直後 10 分は再認証済みとして扱う。
   - Better Auth 側の新しさの確認は `freshAge: 0` で止める。`deleteUser` と `changeEmail` の可否は、hooks の再認証の判定に一本化する。
   - **退会とメールアドレスの変更の Server Action**: `reauthenticatedAt` が 10 分以内でなければ `REAUTH_REQUIRED` を返す。
