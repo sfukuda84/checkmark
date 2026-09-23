@@ -95,6 +95,38 @@ describe("retryCandidate（FR-024、FR-026a、contracts/server-actions.md）", (
     ).toMatchObject({ ok: true });
   });
 
+  it("DB の失敗は FAILED を返し、例外を外へ出さない", async () => {
+    const failing = {
+      transaction: async () => {
+        throw new Error("Failed query: ...\nparams: x");
+      },
+    } as unknown as Parameters<typeof retryCandidate>[0];
+    expect(
+      await retryCandidate(failing, recordingSender().sender, {
+        userId: "u1",
+        candidateId: "00000000-0000-0000-0000-000000000000",
+        now,
+      }),
+    ).toEqual({ ok: false, error: "FAILED" });
+  });
+
+  it("ジョブの登録と「不明」への更新が両方とも失敗しても、例外を外へ出さない（期限切れの処理に任せる）", async () => {
+    const { enqueueOrMarkUnknown } = await import("@/checks/enqueue");
+    const { createLogger } = await import("@app/shared/logger");
+    const failing = {
+      transaction: async () => {
+        throw new Error("db down");
+      },
+    } as unknown as Parameters<typeof enqueueOrMarkUnknown>[0];
+    await expect(
+      enqueueOrMarkUnknown(failing, recordingSender([0]).sender, createLogger({ level: "silent" }), {
+        candidateId: "00000000-0000-0000-0000-000000000000",
+        attempt: 1,
+        now,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("存在しない候補は NOT_FOUND", async () => {
     expect(
       await retryCandidate(testDb(), recordingSender().sender, {

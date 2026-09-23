@@ -239,3 +239,15 @@ Task: "T031 apps/web/tests/integration/check-authorization.test.ts"
 - [x] T074 同一の商標を 100 件までにし、超えたら「100 件以上」と示す（`identical_overflow`）。`packages/trademark/src/classify.ts`、`apps/web/src/checks/columns.tsx`
 - [x] T075 画面の表示を直す（トップの完了件数 / 全件数、候補ごとの読み直しの案内、やり直しの上限超過での残りと戻る日時、全件が「不明」のときの基準日の文言）。`apps/web/src/app/(app)/`
 - [x] T076 `errorMessage` がプロトタイプのキーを引かないようにし、入力の大きさ（5,000 文字、100 行）とエラーの件数（20 件）に上限を設け、件数のログのキーを `candidateCount` にする。直近のチェックと実行中の件数の問い合わせを軽くし、重複した処理を `remainingQuota` と `enqueueOrMarkUnknown` にまとめる
+
+## Phase 11: Review Round 2
+
+レビュー 2 回目の指摘への対応。
+
+- [x] T077 正規化後の文字が同じ商標を類似の候補から外し、同一の上限（100 件）を超えた分が類似に紛れないようにする（research R4、憲章 IV）。`packages/trademark/src/source.ts`、`apps/worker/src/jobs/pg-trademark-source.ts`、`apps/worker/tests/trademark-check.test.ts`、`apps/worker/tests/pg-trademark-source.test.ts`
+- [x] T078 ジョブの登録と「不明」への更新が両方とも失敗しても、例外を Server Action の外へ出さない（期限切れの処理に任せる）。`apps/web/src/checks/enqueue.ts`
+- [x] T079 例外の種類を取り出す `errorKind` を `packages/shared/src/errors.ts` にまとめ、worker でも pg のエラーコードを残す
+- [x] T080 使われなくなった `text_pattern_ops` の索引を削除する。`packages/db/migrations/0003_drop_reading_key_pattern_idx.sql`
+- [x] T081 大きすぎる入力を `INPUT_TOO_LARGE` で断る
+- [x] T082 照合のログから候補ごとの該当件数を外す（FR-031）
+- [x] T083 やり直しの DB の失敗、同一の 100 件超え、登録と更新の二重の失敗のテストを足す

@@ -19,6 +19,7 @@ const MESSAGES: Record<string, string> = {
   // 一括チェック（001 contracts/server-actions.md）
   NO_CANDIDATES: "候補を 1 件以上入力してください。",
   TOO_MANY_CANDIDATES: "1 回にチェックできる候補は 10 件までです。",
+  INPUT_TOO_LARGE: "入力が長すぎます。候補は 10 件まで、1 件 50 文字までにしてください。",
   INVALID_CANDIDATE: "入力を直してください。",
   INVALID_CLASS: "区分を選び直してください。",
   QUOTA_EXCEEDED: "今月チェックできる候補の数の上限を超えています。",

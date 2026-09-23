@@ -71,7 +71,7 @@ export function createPgTrademarkSource(db: Database): TrademarkSource {
       return rows.map(toMark);
     },
 
-    async findSimilarCandidates(key, classes): Promise<ReadingCandidate[]> {
+    async findSimilarCandidates(key, classes, excludeNormalizedText): Promise<ReadingCandidate[]> {
       if (key === "") return [];
       return timed(db, async (tx) => {
         await tx.execute(sql.raw(`set local pg_trgm.similarity_threshold = ${TRIGRAM_THRESHOLD}`));
@@ -79,6 +79,7 @@ export function createPgTrademarkSource(db: Database): TrademarkSource {
           select m.*, r.reading from trademark_readings r
           join trademark_marks m on m.application_number = r.application_number
           where r.reading_key % ${key} and ${classFilter(classes)}
+            and m.normalized_text <> ${excludeNormalizedText}
           order by similarity(r.reading_key, ${key}) desc, m.application_number
           limit ${MAX_SIMILAR_CANDIDATES}
         `);
@@ -92,6 +93,7 @@ export function createPgTrademarkSource(db: Database): TrademarkSource {
             where left(r.reading_key, 1) = ${key[0]!}
               and length(r.reading_key) between ${Math.max(1, key.length - 2)} and ${key.length + 2}
               and ${classFilter(classes)}
+              and m.normalized_text <> ${excludeNormalizedText}
             order by similarity(r.reading_key, ${key}) desc, m.application_number
             limit ${MAX_SIMILAR_CANDIDATES}
           `);

@@ -199,6 +199,34 @@ describe("trademark-check（contracts/jobs-and-cli.md §2）", () => {
     expect(await usedOf()).toBe(0);
   });
 
+  it("同一の商標が 100 件を超えたら identicalOverflow を立て、超えた分を類似に入れない", async () => {
+    const { trademarkMarks, trademarkReadings } = await import("@app/db");
+    const marks = Array.from({ length: 102 }, (_, i) => ({
+      applicationNumber: `2099-${String(i).padStart(6, "0")}`,
+      markText: "タイリョウ",
+      normalizedText: "タイリョウ",
+      holderName: "検証用大量株式会社",
+      classes: [9],
+      status: "registered" as const,
+    }));
+    await db.insert(trademarkMarks).values(marks);
+    await db
+      .insert(trademarkReadings)
+      .values(
+        marks.map((m) => ({ applicationNumber: m.applicationNumber, reading: "タイリョウ", readingKey: "tairyou" })),
+      );
+    try {
+      const { result } = await check("タイリョウ");
+      expect(result.outcome).toBe("identical");
+      expect(result.identicalOverflow).toBe(true);
+      expect(result.matches.filter((m) => m.kind === "identical")).toHaveLength(100);
+      expect(result.matches.filter((m) => m.kind === "similar").map((m) => m.markText)).not.toContain("タイリョウ");
+    } finally {
+      const { sql } = await import("@app/db");
+      await db.delete(trademarkMarks).where(sql`${trademarkMarks.applicationNumber} like '2099-%'`);
+    }
+  });
+
   it("SC-008: 一部の候補の照合が失敗しても、ほかの候補の結果は出る（FR-023）", async () => {
     const broken: TrademarkSource = {
       ...source,

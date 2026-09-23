@@ -7,7 +7,8 @@
     "./logger": "./src/logger.ts",
     "./env": "./src/env.ts",
     "./time": "./src/time.ts",
-    "./queues": "./src/queues.ts"
+    "./queues": "./src/queues.ts",
+    "./errors": "./src/errors.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

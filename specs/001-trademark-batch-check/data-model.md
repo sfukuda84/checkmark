@@ -43,7 +43,7 @@
 |---|---|---|---|
 | application_number | text | FK → trademark_marks ON DELETE CASCADE | |
 | reading | text | NOT NULL | 称呼（カタカナ） |
-| reading_key | text | NOT NULL, GIN（gin_trgm_ops）と btree（text_pattern_ops）の索引 | 称呼キー（research R4） |
+| reading_key | text | NOT NULL, GIN（gin_trgm_ops）の索引 | 称呼キー（research R4） |
 
 PK は (application_number, reading)。拡張 `pg_trgm` をマイグレーションで有効にする。短いキーの補いのため、`(left(reading_key, 1), length(reading_key))` の式索引も置く。
 

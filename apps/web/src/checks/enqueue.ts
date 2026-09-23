@@ -1,4 +1,5 @@
 import { markCandidateUnknown, type Database } from "@app/db";
+import { errorKind } from "@app/shared/errors";
 import type { Logger } from "@app/shared/logger";
 import type { CheckJobSender } from "./jobs";
 
@@ -13,17 +14,14 @@ export async function enqueueOrMarkUnknown(
     await sender.send(input.candidateId, input.attempt);
   } catch (err) {
     logger.error(
-      { candidateId: input.candidateId, attempt: input.attempt, error: err instanceof Error ? err.name : "unknown" },
+      { candidateId: input.candidateId, attempt: input.attempt, error: errorKind(err) },
       "照合のジョブを登録できなかった",
     );
-    await markCandidateUnknown(db, { ...input, errorCode: "FAILED" });
+    try {
+      await markCandidateUnknown(db, { ...input, errorCode: "FAILED" });
+    } catch (e) {
+      // DB も止まっているときは握る。期限切れの処理（expire-trademark-checks）が 2 分後に「不明」にして利用回数を戻す。
+      logger.error({ candidateId: input.candidateId, error: errorKind(e) }, "候補を「不明」にできなかった");
+    }
   }
-}
-
-/** DB の例外の種類だけを返す。drizzle の例外はメッセージと params に問い合わせの値（候補名）を含むため、そのまま出さない（憲章 II）。 */
-export function errorKind(err: unknown): { name: string; code: string | null } {
-  if (!(err instanceof Error)) return { name: typeof err, code: null };
-  const cause = (err as { cause?: { code?: unknown } }).cause;
-  const code = (err as { code?: unknown }).code ?? cause?.code;
-  return { name: err.name, code: typeof code === "string" ? code : null };
 }

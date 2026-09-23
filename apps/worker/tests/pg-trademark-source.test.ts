@@ -33,7 +33,7 @@ describe("PgTrademarkSource（research R4、憲章 III）", () => {
   });
 
   it("findSimilarCandidates は称呼キーの近い候補を返す", async () => {
-    const got = await source.findSimilarCandidates(readingKey("サクラノミチ"), []);
+    const got = await source.findSimilarCandidates(readingKey("サクラノミチ"), [], "");
     const ids = got.map((c) => c.mark.applicationNumber);
     expect(ids).toContain("2020-000001");
     expect(ids).toContain("2020-000002");
@@ -42,13 +42,23 @@ describe("PgTrademarkSource（research R4、憲章 III）", () => {
     expect(hit).toMatchObject({ reading: "サクマノミチ", mark: { holderName: "検証用製菓株式会社", classes: [30] } });
   });
 
+  it("正規化後の文字が同じ商標（同一）は類似の候補に含めない", async () => {
+    const got = await source.findSimilarCandidates(readingKey("サクラノミチ"), [], "サクラノミチ");
+    const ids = got.map((c) => c.mark.applicationNumber);
+    expect(ids).not.toContain("2020-000001");
+    expect(ids).toContain("2020-000002");
+    expect(
+      (await source.findSimilarCandidates(readingKey("モミ"), [], "モミジ")).map((c) => c.mark.applicationNumber),
+    ).not.toContain("2020-000009");
+  });
+
   it("短い称呼キーでも候補を返す", async () => {
-    const got = await source.findSimilarCandidates(readingKey("モミ"), []);
+    const got = await source.findSimilarCandidates(readingKey("モミ"), [], "");
     expect(got.map((c) => c.mark.applicationNumber)).toContain("2020-000009");
   });
 
   it("findSimilarCandidates も区分で絞る", async () => {
-    const got = await source.findSimilarCandidates(readingKey("ハルカゼ"), [25]);
+    const got = await source.findSimilarCandidates(readingKey("ハルカゼ"), [25], "");
     expect(got.map((c) => c.mark.applicationNumber)).toEqual(["2020-000015"]);
   });
 

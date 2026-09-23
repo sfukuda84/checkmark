@@ -160,10 +160,11 @@ describe("startCheck（contracts/server-actions.md、FR-001〜FR-007、FR-025〜
   });
 
   it("大きすぎる入力は解析する前に断り、行ごとのエラーは 20 件までにする", async () => {
-    expect(await run(Array.from({ length: 101 }, () => "ア").join("\n"))).toMatchObject({
-      error: "TOO_MANY_CANDIDATES",
+    expect(await run(Array.from({ length: 101 }, () => "ア").join("\n"))).toEqual({
+      ok: false,
+      error: "INPUT_TOO_LARGE",
     });
-    expect(await run("ア".repeat(5001))).toMatchObject({ error: "TOO_MANY_CANDIDATES" });
+    expect(await run("ア".repeat(5001))).toEqual({ ok: false, error: "INPUT_TOO_LARGE" });
     const r = await run(Array.from({ length: 30 }, () => "🌸").join("\n"));
     expect(r.ok === false && r.error === "INVALID_CANDIDATE" && r.details.length).toBe(20);
   });

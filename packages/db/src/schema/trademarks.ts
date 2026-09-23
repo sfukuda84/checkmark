@@ -49,7 +49,7 @@ export const trademarkMarks = pgTable(
   ],
 );
 
-/** 称呼（001 data-model §3）。reading_key の索引（trgm と text_pattern_ops）はマイグレーションで足す。 */
+/** 称呼（001 data-model §3）。reading_key の索引（trgm と、先頭 1 文字と長さの式索引）はマイグレーションで足す。 */
 export const trademarkReadings = pgTable(
   "trademark_readings",
   {

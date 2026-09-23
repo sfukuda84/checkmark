@@ -10,7 +10,8 @@ import {
   type Database,
 } from "@app/db";
 import { createLogger, type Logger } from "@app/shared/logger";
-import { enqueueOrMarkUnknown, errorKind } from "./enqueue";
+import { errorKind } from "@app/shared/errors";
+import { enqueueOrMarkUnknown } from "./enqueue";
 import type { CheckJobSender } from "./jobs";
 import { isUuid } from "./repository";
 import { CANDIDATE_DEADLINE_MS } from "./start-check";

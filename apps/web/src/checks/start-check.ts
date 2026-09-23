@@ -1,7 +1,8 @@
 import { chargeUsage, checkCandidates, checks, lockUser, periodOf, type Database } from "@app/db";
 import { createLogger, type Logger } from "@app/shared/logger";
 import { isTrademarkClass, MAX_CANDIDATES, parseCandidateInput, type InputError } from "@app/trademark";
-import { enqueueOrMarkUnknown, errorKind } from "./enqueue";
+import { errorKind } from "@app/shared/errors";
+import { enqueueOrMarkUnknown } from "./enqueue";
 import type { CheckJobSender } from "./jobs";
 import { countRunningChecks, MAX_RUNNING_CHECKS, remainingQuota } from "./usage";
 
@@ -15,7 +16,7 @@ const MAX_ERROR_DETAILS = 20;
 
 export type StartCheckResult =
   | { ok: true; checkId: string; merged: number }
-  | { ok: false; error: "NO_CANDIDATES" | "INVALID_CLASS" | "TOO_MANY_RUNNING" | "FAILED" }
+  | { ok: false; error: "NO_CANDIDATES" | "INVALID_CLASS" | "TOO_MANY_RUNNING" | "INPUT_TOO_LARGE" | "FAILED" }
   | { ok: false; error: "TOO_MANY_CANDIDATES"; limit: number }
   | { ok: false; error: "INVALID_CANDIDATE"; details: InputError[] }
   | { ok: false; error: "QUOTA_EXCEEDED"; remaining: number; limit: number };
@@ -46,9 +47,7 @@ export async function startCheck(
 ): Promise<StartCheckResult> {
   const logger = input.logger ?? createLogger({ name: "start-check" });
   const lines = input.input.split(/\r?\n/).filter((l) => l.trim() !== "").length;
-  if (input.input.length > MAX_INPUT_LENGTH || lines > MAX_INPUT_LINES) {
-    return { ok: false, error: "TOO_MANY_CANDIDATES", limit: MAX_CANDIDATES };
-  }
+  if (input.input.length > MAX_INPUT_LENGTH || lines > MAX_INPUT_LINES) return { ok: false, error: "INPUT_TOO_LARGE" };
   const parsed = parseCandidateInput(input.input);
   if (parsed.errors.length > 0) {
     return { ok: false, error: "INVALID_CANDIDATE", details: parsed.errors.slice(0, MAX_ERROR_DETAILS) };

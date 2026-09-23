@@ -8,6 +8,7 @@ import {
   trademarkResults,
   type Database,
 } from "@app/db";
+import { errorKind } from "@app/shared/errors";
 import type { Logger } from "@app/shared/logger";
 import { buildTrademarkResult, readingKey, type TrademarkSource } from "@app/trademark";
 import { estimateReading, type ReadingDeps } from "@app/trademark/reading";
@@ -88,7 +89,7 @@ export async function handleTrademarkCheck(deps: TrademarkCheckDeps, job: Tradem
       const key = reading ? readingKey(reading) : "";
       const [identical, similarCandidates] = await Promise.all([
         deps.source.findIdentical(candidate.normalizedText, classes),
-        key ? deps.source.findSimilarCandidates(key, classes) : Promise.resolve([]),
+        key ? deps.source.findSimilarCandidates(key, classes, candidate.normalizedText) : Promise.resolve([]),
       ]);
       const body = buildTrademarkResult({ reading: key ? reading : null, identical, similarCandidates });
       return { kind: "done" as const, dataset, reading, estimated, body };
@@ -124,17 +125,16 @@ export async function handleTrademarkCheck(deps: TrademarkCheckDeps, job: Tradem
         .onConflictDoUpdate({ target: trademarkResults.candidateId, set: values });
       return true;
     });
-    // 個別の照合結果（分類）はログに出さない（FR-031、contracts/jobs-and-cli.md §2）。
-    logger.info({ candidateId, attempt, ms: Date.now() - started, matches: body.matches.length }, "商標の照合を終えた");
+    // 個別の照合結果（分類や該当件数）はログに出さない（FR-031、contracts/jobs-and-cli.md §2）。
+    logger.info({ candidateId, attempt, ms: Date.now() - started }, "商標の照合を終えた");
     if (!written) logger.info({ candidateId, attempt }, "期限切れかやり直しの後だったので、結果を捨てた");
   } catch (err) {
     const last = job.retryCount >= job.retryLimit;
     // エラーのメッセージには、問い合わせの値（候補名）が入ることがあるため、種類だけを残す（憲章 II）。
-    const error =
-      err instanceof Error ? { name: err.name, code: (err as { code?: unknown }).code ?? null } : { name: typeof err };
+    const error = errorKind(err);
     logger.error({ candidateId, attempt, retryCount: job.retryCount, last, error }, "商標の照合に失敗した");
     // 投げ直した例外は pg-boss がジョブの output に保存する。問い合わせの値（候補名）を含む元の例外は渡さない（憲章 II）。
-    if (!last) throw new TrademarkCheckError(error.name);
+    if (!last) throw new TrademarkCheckError(error.code ?? error.name);
     await markCandidateUnknown(db, { candidateId, attempt, errorCode: "FAILED", now: now() });
   }
 }
