@@ -224,3 +224,4 @@ Task: "T031 apps/web/tests/integration/check-authorization.test.ts"
 
 - 特許庁の一括ダウンロードの TSV からの変換（`JpoBulkMapping`）は、申込が通って項目定義書を入手してから作る（research R1、quickstart §5）。この tasks.md の範囲には含めない
 - ログとジョブのデータに候補名を入れない（憲章 II）
+- converge（2026-09-23）: FR-001〜FR-033、SC-001〜SC-009、contracts をコードと照合し、未達のギャップは 0 件（✅ Converged）。SC-008 のテスト（一部の候補が失敗しても、ほかの候補の結果が出る）は実装の最後に `apps/worker/tests/trademark-check.test.ts` に足した
