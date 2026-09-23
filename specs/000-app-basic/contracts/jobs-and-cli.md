@@ -6,7 +6,7 @@
 
 | キュー | 起動 | データ | 振る舞い |
 |---|---|---|---|
-| `send-email` | web が登録する | `{ outboundEmailId: string, kind: string, to: string, url?: string }` | `MailTransport` で送る。成功したら `outbound_emails.status = sent`。失敗したら例外を投げ、pg-boss が再送する（`retryLimit: 5`、`retryDelay: 30`、`retryBackoff: true`）。最後の失敗で `failed` にして、`error` のログを出す。完了したジョブは 1 日で削除する |
+| `send-email` | web が登録する | `{ outboundEmailId: string, kind: string, to: string, url?: string }` | `MailTransport` で送る。成功したら `outbound_emails.status = sent`。失敗したら例外を投げ、pg-boss が再送する（`retryLimit: 15`、`retryDelay: 120`）。最後の失敗で `failed` にして、`error` のログを出す。完了したジョブは 1 日で削除する |
 | `cleanup-unverified-users` | 毎日 03:00 JST | なし | 未確認かつ登録から 7 日を過ぎ、`google` のログイン手段を持たない user を削除する |
 | `prune-auth-events` | 毎日 03:10 JST | なし | `occurred_at` が 90 日より前の行を削除する |
 | `prune-outbound-emails` | 毎日 03:20 JST | なし | `created_at` が 30 日より前の行を削除する |

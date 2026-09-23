@@ -69,5 +69,5 @@ pnpm test:e2e      # Playwright（web と worker を起動して実行する）
 
 ## メール送信の障害（SC-008）
 
-- `MAIL_TRANSPORT=resend` にし、`RESEND_API_KEY` を誤った値にしてサインアップする。→ `outbound_emails.attempts` が増え、5 回目で `failed` になり、`error` のログが出る。
+- `MAIL_TRANSPORT=resend` にし、`RESEND_API_KEY` を誤った値にしてサインアップする。→ `outbound_emails.attempts` が 2 分ごとに増え、再送を使い切ると（15 回）`failed` になり、`error` のログが出る。
 - 正しいキーに戻して「確認メールを送り直す」を選ぶ。→ 届く。
