@@ -61,7 +61,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 - [x] T025 [P] 検証用データを作る。同一、称呼同一、1 音違い、清濁違い、長音の有無、区分違い、無関係、英字の商標（称呼つき）の組を含める。`apps/importer/fixtures/sample-trademarks.tsv`
 - [x] T026 [P] 取り込みの手順を書く（申込が通るまでの扱い、`JpoBulkMapping` の未実装を含む。NFR-OP-006）。`docs/ops/trademark-import.md`
 
-- [x] T067 利用回数を数える・戻す基本処理（`chargeCandidates`、`refundCandidate`。`charged` を false にしてから `charged_period` の行から引き、二重に戻さない）を、テストを先に書いて作る。web（実行、やり直し、ジョブ登録の失敗）と worker（最後の試行の失敗、期限切れ）の両方から使う（FR-026、FR-026a、research R6）。`packages/db/src/usage-ledger.ts`、`packages/db/tests/usage-ledger.test.ts`
+- [x] T067 利用回数を数える・戻す基本処理（`chargeUsage`、`refundCandidate`、`markCandidateUnknown`。`charged` を false にしてから `charged_period` の行から引き、二重に戻さない）を、テストを先に書いて作る。web（実行、やり直し、ジョブ登録の失敗）と worker（最後の試行の失敗、期限切れ）の両方から使う（FR-026、FR-026a、research R6）。`packages/db/src/usage-ledger.ts`、`packages/db/tests/usage-ledger.test.ts`
 
 **Checkpoint**: 照合のロジックと商標データの取り込みができた
 
@@ -146,7 +146,7 @@ description: "候補名の一括チェックと商標照合（001-trademark-batc
 **Independent Test**: 残り 3 件で 5 件を実行できないこと、失敗分が戻ることを確かめる
 
 - [x] T056 [P] [US5] 期間と残りの計算の単体テストを書く（日本時間の暦月、月末の境界、次に戻る日時、上限値の既定 50 と設定値）。`apps/web/tests/unit/usage.test.ts`
-- [x] T057 [P] [US5] 利用回数の結合テストを書く（FR-026、FR-026a、FR-027、FR-027a。数える、超えたら `QUOTA_EXCEEDED`、同時の実行で超えない、実行中 3 件で `TOO_MANY_RUNNING`、`unknown` で戻る、二重に戻さない、やり直しで数える）。`apps/web/tests/integration/usage.test.ts`
+- [x] T057 [P] [US5] 利用回数の結合テストを書く（FR-026、FR-026a、FR-027、FR-027a。数える、超えたら `QUOTA_EXCEEDED`、同時の実行で超えない、実行中 3 件で `TOO_MANY_RUNNING`、`unknown` で戻る、二重に戻さない、やり直しで数える）。`apps/web/tests/integration/start-check.test.ts`、`apps/web/tests/integration/retry-candidate.test.ts`
 - [x] T058 [US5] T056 と T057 を通す実装を書く。`apps/web/src/checks/usage.ts`（期間、残り、上限値）、`start-check.ts` と `retry.ts` への利用者ごとのロックと、残りと実行中の件数の確認（数える・戻すは T067 の `usage-ledger.ts` を使う）
 - [x] T059 [US5] 入力画面とトップに残りと戻る日時を出し、残り 0 件なら実行できないようにする。`apps/web/src/app/(app)/checks/new/page.tsx`、`apps/web/src/app/(app)/page.tsx`
 - [x] T060 [US5] E2E を書く（残りの表示、超えたときのエラー）。`apps/web/tests/e2e/checks-us5.spec.ts`
@@ -225,3 +225,17 @@ Task: "T031 apps/web/tests/integration/check-authorization.test.ts"
 - 特許庁の一括ダウンロードの TSV からの変換（`JpoBulkMapping`）は、申込が通って項目定義書を入手してから作る（research R1、quickstart §5）。この tasks.md の範囲には含めない
 - ログとジョブのデータに候補名を入れない（憲章 II）
 - converge（2026-09-23）: FR-001〜FR-033、SC-001〜SC-009、contracts をコードと照合し、未達のギャップは 0 件（✅ Converged）。SC-008 のテスト（一部の候補が失敗しても、ほかの候補の結果が出る）は実装の最後に `apps/worker/tests/trademark-check.test.ts` に足した
+
+## Phase 10: Review Round 1
+
+レビュー 1 回目（Standards 軸・Spec 軸）の指摘への対応。
+
+- [x] T068 再試行に回す例外を、種類だけを持つ `TrademarkCheckError` に置き換え、元の例外（候補名を含む問い合わせの値）を pg-boss のジョブに保存しない（憲章 II）。`apps/worker/src/jobs/trademark-check.ts`、`apps/worker/tests/log-redaction.test.ts`
+- [x] T069 `startCheck` と `retryCandidate` の DB の失敗を `FAILED` として返し、例外を Server Action の外へ出さない（憲章 II）。`apps/web/src/checks/start-check.ts`、`apps/web/src/checks/retry.ts`、`apps/web/src/checks/enqueue.ts`
+- [x] T070 照合のログから結果の分類を外す（FR-031）。`apps/worker/src/jobs/trademark-check.ts`
+- [x] T071 照合の問い合わせすべてに `statement_timeout` をかけ、同一の照合に上限を付け、接続の待ち時間に上限を設ける。`apps/worker/src/jobs/pg-trademark-source.ts`、`packages/db/src/client.ts`
+- [x] T072 短いキーの補いを式索引と似ている順の並べ替えで行う。`packages/db/migrations/0002_identical_overflow_and_short_key.sql`
+- [x] T073 やり直しにも同時実行 3 件の上限をかける（FR-027a）。`apps/web/src/checks/retry.ts`、`apps/web/tests/integration/retry-candidate.test.ts`
+- [x] T074 同一の商標を 100 件までにし、超えたら「100 件以上」と示す（`identical_overflow`）。`packages/trademark/src/classify.ts`、`apps/web/src/checks/columns.tsx`
+- [x] T075 画面の表示を直す（トップの完了件数 / 全件数、候補ごとの読み直しの案内、やり直しの上限超過での残りと戻る日時、全件が「不明」のときの基準日の文言）。`apps/web/src/app/(app)/`
+- [x] T076 `errorMessage` がプロトタイプのキーを引かないようにし、入力の大きさ（5,000 文字、100 行）とエラーの件数（20 件）に上限を設け、件数のログのキーを `candidateCount` にする。直近のチェックと実行中の件数の問い合わせを軽くし、重複した処理を `remainingQuota` と `enqueueOrMarkUnknown` にまとめる

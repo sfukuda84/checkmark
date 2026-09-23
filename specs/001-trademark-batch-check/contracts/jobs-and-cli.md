@@ -21,9 +21,9 @@
 4. 有効な商標データがなければ、`unknown`（`NO_DATASET`）にして利用回数を戻す。
 5. 同一と類似を探す（research R4、選んだ区分で絞る）。
 6. 1 トランザクションで、結果を書き、候補を `done` にする（状態と attempt を条件にした更新。0 行なら結果を捨てる）。
-7. 例外は再試行に回す。最後の試行でも失敗したら `unknown`（`FAILED`）にして利用回数を戻す。
+7. 例外は再試行に回す。最後の試行でも失敗したら `unknown`（`FAILED`）にして利用回数を戻す。再試行に回すときは、種類だけを持つ例外（`TrademarkCheckError`）を投げ、元の例外は渡さない（pg-boss は例外をジョブの output に保存し、drizzle の例外は問い合わせの値＝候補名を含むため。憲章 II）。
 
-ログには `candidateId`、`attempt`、所要時間、該当件数だけを出す。
+ログには `candidateId`、`attempt`、所要時間、該当件数と、例外の種類だけを出す。照合結果の分類は出さない（FR-031）。問い合わせにはすべて `statement_timeout`（10 秒）をかける。
 
 ## 3. 取り込み CLI（apps/importer）
 

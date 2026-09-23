@@ -57,17 +57,32 @@ export async function getUsed(db: DbOrTx, userId: string, period: string): Promi
   return row?.used ?? 0;
 }
 
+/** 今の期間の残りと上限値。 */
+export async function remainingQuota(
+  db: DbOrTx,
+  userId: string,
+  period: string,
+): Promise<{ remaining: number; limit: number }> {
+  const limit = await getMonthlyLimit(db);
+  return { remaining: Math.max(0, limit - (await getUsed(db, userId, period))), limit };
+}
+
 export async function getUsageSummary(db: DbOrTx, userId: string, at: Date): Promise<UsageSummary> {
   const [limit, used] = await Promise.all([getMonthlyLimit(db), getUsed(db, userId, periodOf(at))]);
   return summarizeUsage({ limit, used, at });
 }
 
-/** 確認中（queued / running）の候補を持つチェックの数。 */
-export async function countRunningChecks(db: DbOrTx, userId: string): Promise<number> {
+/** 確認中（queued / running）の候補を持つチェックの数。except のチェックは数えない。 */
+export async function countRunningChecks(db: DbOrTx, userId: string, except?: string): Promise<number> {
   const [row] = await db
-    .select({ n: sql<number>`count(distinct ${checks.id})::int` })
+    .select({ n: sql<number>`count(*)::int` })
     .from(checks)
-    .innerJoin(checkCandidates, eq(checkCandidates.checkId, checks.id))
-    .where(and(eq(checks.userId, userId), inArray(checkCandidates.status, ["queued", "running"])));
+    .where(
+      and(
+        eq(checks.userId, userId),
+        except ? sql`${checks.id} <> ${except}` : undefined,
+        sql`exists (select 1 from ${checkCandidates} where ${checkCandidates.checkId} = ${checks.id} and ${inArray(checkCandidates.status, ["queued", "running"])})`,
+      ),
+    );
   return row?.n ?? 0;
 }

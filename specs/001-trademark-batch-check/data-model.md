@@ -45,7 +45,7 @@
 | reading | text | NOT NULL | 称呼（カタカナ） |
 | reading_key | text | NOT NULL, GIN（gin_trgm_ops）と btree（text_pattern_ops）の索引 | 称呼キー（research R4） |
 
-PK は (application_number, reading)。拡張 `pg_trgm` をマイグレーションで有効にする。
+PK は (application_number, reading)。拡張 `pg_trgm` をマイグレーションで有効にする。短いキーの補いのため、`(left(reading_key, 1), length(reading_key))` の式索引も置く。
 
 ## 4. checks（チェック）
 
@@ -100,6 +100,7 @@ unknown → queued（やり直し。attempt を 1 増やし、期限を延ばし
 | dataset_as_of | date | NULL 可 | 調べた商標データの基準日（FR-015） |
 | checked_at | timestamptz | NOT NULL | 調べた日時 |
 | reading_unavailable | boolean | NOT NULL, 既定 false | 読みが得られず類似を調べなかった（research R3） |
+| identical_overflow | boolean | NOT NULL, 既定 false | 同一の商標が 100 件を超えた（research R4） |
 | error_code | text | NULL 可 | `unknown` の理由（`TIMEOUT`、`NO_DATASET`、`FAILED`） |
 
 `matches` の要素（調べた時点の写し。憲章 IV）:

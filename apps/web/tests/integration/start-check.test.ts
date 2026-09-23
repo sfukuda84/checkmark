@@ -128,6 +128,46 @@ describe("startCheck（contracts/server-actions.md、FR-001〜FR-007、FR-025〜
     expect(await used()).toBe(10);
   });
 
+  it("DB の失敗は FAILED を返し、候補名を含む例外を外へ出さず、ログにも出さない（憲章 II）", async () => {
+    const { Writable } = await import("node:stream");
+    const { createLogger } = await import("@app/shared/logger");
+    const lines: string[] = [];
+    const logger = createLogger({
+      level: "debug",
+      destination: new Writable({
+        write(c, _e, cb) {
+          lines.push(c.toString());
+          cb();
+        },
+      }),
+    });
+    const failing = {
+      transaction: async () => {
+        throw Object.assign(new Error("Failed query: insert ...\nparams: ヒミツノナマエ"), {
+          params: ["ヒミツノナマエ"],
+        });
+      },
+    } as unknown as Parameters<typeof startCheck>[0];
+    const r = await startCheck(failing, recordingSender().sender, {
+      userId: "u1",
+      input: "ヒミツノナマエ",
+      classes: [],
+      now,
+      logger,
+    });
+    expect(r).toEqual({ ok: false, error: "FAILED" });
+    expect(lines.join("")).not.toContain("ヒミツノナマエ");
+  });
+
+  it("大きすぎる入力は解析する前に断り、行ごとのエラーは 20 件までにする", async () => {
+    expect(await run(Array.from({ length: 101 }, () => "ア").join("\n"))).toMatchObject({
+      error: "TOO_MANY_CANDIDATES",
+    });
+    expect(await run("ア".repeat(5001))).toMatchObject({ error: "TOO_MANY_CANDIDATES" });
+    const r = await run(Array.from({ length: 30 }, () => "🌸").join("\n"));
+    expect(r.ok === false && r.error === "INVALID_CANDIDATE" && r.details.length).toBe(20);
+  });
+
   it("ジョブを送れなかった候補は unknown（FAILED）にして利用回数を戻す", async () => {
     const s = recordingSender([1]);
     const r = await run("ア\nイ\nウ", [], { sender: s });

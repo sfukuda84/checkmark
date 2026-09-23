@@ -9,8 +9,16 @@ export interface DbHandle {
   pool: pg.Pool;
 }
 
-export function createDb(connectionString: string, options: { max?: number } = {}): DbHandle {
-  const pool = new pg.Pool({ connectionString, max: options.max ?? 10 });
+export function createDb(
+  connectionString: string,
+  options: { max?: number; connectionTimeoutMillis?: number } = {},
+): DbHandle {
+  // 接続の空きを無期限に待たない（既定 10 秒）。
+  const pool = new pg.Pool({
+    connectionString,
+    max: options.max ?? 10,
+    connectionTimeoutMillis: options.connectionTimeoutMillis ?? 10_000,
+  });
   return { db: drizzle(pool, { schema }), pool };
 }
 

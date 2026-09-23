@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildTrademarkResult, MAX_SIMILAR_MATCHES } from "../src/classify";
+import {
+  buildTrademarkResult,
+  IDENTICAL_FETCH_LIMIT,
+  MAX_IDENTICAL_MATCHES,
+  MAX_SIMILAR_MATCHES,
+} from "../src/classify";
 import type { MarkRecord } from "../src/source";
 
 const mark = (n: string, text = `商標${n}`): MarkRecord => ({
@@ -59,7 +64,7 @@ describe("buildTrademarkResult（FR-009、FR-013）", () => {
 
   it("どちらもなければ none", () => {
     const r = buildTrademarkResult({ reading: "ソラマメ", identical: [], similarCandidates: [] });
-    expect(r).toEqual({ outcome: "none", matches: [], readingUnavailable: false });
+    expect(r).toEqual({ outcome: "none", matches: [], readingUnavailable: false, identicalOverflow: false });
   });
 
   it("類似は上位 20 件までにする", () => {
@@ -71,8 +76,19 @@ describe("buildTrademarkResult（FR-009、FR-013）", () => {
     expect(r.matches).toHaveLength(MAX_SIMILAR_MATCHES);
   });
 
+  it("同一の商標は 100 件までにし、超えたら identicalOverflow を立てる", () => {
+    const many = Array.from({ length: IDENTICAL_FETCH_LIMIT }, (_, i) => mark(`i${String(i).padStart(3, "0")}`));
+    const r = buildTrademarkResult({ reading: "サクラ", identical: many, similarCandidates: [] });
+    expect(r.matches).toHaveLength(MAX_IDENTICAL_MATCHES);
+    expect(r.identicalOverflow).toBe(true);
+    expect(
+      buildTrademarkResult({ reading: "サクラ", identical: many.slice(0, 100), similarCandidates: [] })
+        .identicalOverflow,
+    ).toBe(false);
+  });
+
   it("読みがなければ同一だけを判定し、readingUnavailable を立てる（research R3）", () => {
     const r = buildTrademarkResult({ reading: null, identical: [], similarCandidates: [] });
-    expect(r).toEqual({ outcome: "none", matches: [], readingUnavailable: true });
+    expect(r).toEqual({ outcome: "none", matches: [], readingUnavailable: true, identicalOverflow: false });
   });
 });

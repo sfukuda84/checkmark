@@ -50,5 +50,32 @@ describe("ログに候補名を出さない（SC-006、FR-031）", () => {
     expect(out.length).toBeGreaterThan(0);
     expect(out).not.toContain(SECRET);
     expect(out).not.toContain("ヒミツ");
+    // 個別の照合結果（分類）も出さない（FR-031）
+    expect(out).not.toMatch(/"outcome"/);
+  });
+
+  it("再試行に回す例外に、元の例外（候補名を含む問い合わせの値）を持たせない（pg-boss がジョブに保存するため）", async () => {
+    const source = createPgTrademarkSource(db);
+    const leaky = Object.assign(new Error(`Failed query: select ...\nparams: ${SECRET}`), { params: [SECRET] });
+    const broken: TrademarkSource = {
+      ...source,
+      findIdentical: async () => {
+        throw leaky;
+      },
+    };
+    const { candidates } = await createCheck([{ text: SECRET }]);
+    const thrown = await handleTrademarkCheck(
+      { db, source: broken, tokenize: async () => [], logger: captureLogger().logger },
+      { data: { candidateId: candidates[0]!.id, attempt: 1 }, retryCount: 0, retryLimit: 1 },
+    ).then(
+      () => null,
+      (e: unknown) => e,
+    );
+    expect(thrown).toBeInstanceOf(Error);
+    const e = thrown as Error & Record<string, unknown>;
+    const serialized = JSON.stringify({ ...e, message: e.message, stack: e.stack, cause: e.cause });
+    expect(serialized).not.toContain(SECRET);
+    expect(e.cause).toBeUndefined();
+    expect(e.name).toBe("TrademarkCheckError");
   });
 });

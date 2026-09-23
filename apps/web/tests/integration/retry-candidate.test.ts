@@ -73,6 +73,28 @@ describe("retryCandidate（FR-024、FR-026a、contracts/server-actions.md）", (
     expect(await used()).toBe(0);
   });
 
+  it("実行中のチェックが 3 件あれば TOO_MANY_RUNNING。対象のチェックが実行中なら数えない（FR-027a）", async () => {
+    await insertCheck("u1", ["queued"]);
+    await insertCheck("u1", ["running"]);
+    const running = await insertCheck("u1", ["queued", "unknown"]);
+    const finished = await insertCheck("u1", ["done", "unknown"]);
+    await setUsed("u1", "2026-09", 0);
+    expect(
+      await retryCandidate(testDb(), recordingSender().sender, {
+        userId: "u1",
+        candidateId: finished.candidates[1]!.id,
+        now,
+      }),
+    ).toEqual({ ok: false, error: "TOO_MANY_RUNNING" });
+    expect(
+      await retryCandidate(testDb(), recordingSender().sender, {
+        userId: "u1",
+        candidateId: running.candidates[1]!.id,
+        now,
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
   it("存在しない候補は NOT_FOUND", async () => {
     expect(
       await retryCandidate(testDb(), recordingSender().sender, {

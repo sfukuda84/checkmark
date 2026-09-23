@@ -5,6 +5,7 @@ import { requireUser } from "@/auth/guards";
 import { CHECK_COLUMNS } from "@/checks/columns";
 import { classesLabel, formatDate, formatDateTime, isDatasetStale, latestDataset } from "@/checks/presentation";
 import { findOwnedCheck } from "@/checks/repository";
+import { getUsageSummary } from "@/checks/usage";
 import { errorMessage } from "@/lib/error-messages";
 import { AutoRefresh } from "./auto-refresh";
 
@@ -24,8 +25,8 @@ export default async function CheckPage({
   const owned = await findOwnedCheck(getDb(), user.id, id);
   if (!owned) notFound();
   const mergedCount = Number(merged);
+  const usage = retryError === "QUOTA_EXCEEDED" ? await getUsageSummary(getDb(), user.id, new Date()) : null;
   const dataset = latestDataset(owned.candidates.map((c) => c.result));
-  const anyEstimated = owned.candidates.some((c) => c.readingEstimated || c.result?.readingUnavailable);
 
   return (
     <>
@@ -42,6 +43,8 @@ export default async function CheckPage({
       {retryError && (
         <p className="error" role="alert">
           {errorMessage(retryError)}
+          {usage &&
+            ` 今月の残りは ${usage.remaining} 件（上限 ${usage.limit} 件）です。${formatDateTime(usage.resetsAt)} に戻ります。`}
         </p>
       )}
       <dl className="meta">
@@ -57,7 +60,9 @@ export default async function CheckPage({
         <dd>
           {dataset
             ? `${formatDate(dataset.asOf)} 時点までの出願・登録（調べた日時 ${formatDateTime(dataset.checkedAt)}）`
-            : "調べ終わった候補がまだありません"}
+            : owned.running
+              ? "調べ終わった候補がまだありません"
+              : "商標データの基準日を確認できませんでした（どの候補も確認できませんでした）"}
         </dd>
       </dl>
       {dataset && isDatasetStale(dataset.asOf, dataset.checkedAt) && (
@@ -89,6 +94,13 @@ export default async function CheckPage({
                       {c.readingEstimated && "（推定）"}
                     </div>
                   )}
+                  {c.status === "done" && (c.readingEstimated || c.result?.readingUnavailable) && (
+                    <div className="small">
+                      読みが違う場合は、
+                      <Link href={`/checks/new?from=${owned.check.id}`}>読みを添えてもう一度チェック</Link>
+                      してください。
+                    </div>
+                  )}
                 </th>
                 {CHECK_COLUMNS.map((col) => (
                   <td key={col.key}>{col.render(c, { checkId: owned.check.id })}</td>
@@ -98,13 +110,6 @@ export default async function CheckPage({
           </tbody>
         </table>
       </div>
-      {anyEstimated && !owned.running && (
-        <p>
-          推定した読みが違う場合は、
-          <Link href={`/checks/new?from=${owned.check.id}`}>読みを添えてもう一度チェックする</Link>
-          ことができます。
-        </p>
-      )}
       <p>
         <Link href="/checks/new">別の候補をチェックする</Link>・<Link href="/">トップへ戻る</Link>
       </p>

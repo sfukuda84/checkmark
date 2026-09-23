@@ -4,7 +4,10 @@ import type { MarkRecord, ReadingCandidate } from "./source";
 /** 照合の結果の分類（FR-009、FR-013）。 */
 
 export const MAX_SIMILAR_MATCHES = 20;
-export const MAX_IDENTICAL_MATCHES = 20;
+/** 同一の商標として保存・表示する上限。これを超えたら identicalOverflow を立てる（research R4）。 */
+export const MAX_IDENTICAL_MATCHES = 100;
+/** 上限を超えたかを知るため、取得元からは 1 件多く取り出す。 */
+export const IDENTICAL_FETCH_LIMIT = MAX_IDENTICAL_MATCHES + 1;
 
 export type MatchKind = "identical" | "similar";
 
@@ -18,6 +21,8 @@ export interface TrademarkResultBody {
   outcome: "identical" | "similar" | "none";
   matches: Match[];
   readingUnavailable: boolean;
+  /** 同一の商標が上限（100 件）を超えた */
+  identicalOverflow: boolean;
 }
 
 export interface BuildInput {
@@ -55,5 +60,10 @@ export function buildTrademarkResult(input: BuildInput): TrademarkResultBody {
     .slice(0, MAX_SIMILAR_MATCHES);
 
   const outcome = identical.length > 0 ? "identical" : similar.length > 0 ? "similar" : "none";
-  return { outcome, matches: [...identical, ...similar], readingUnavailable: input.reading === null };
+  return {
+    outcome,
+    matches: [...identical, ...similar],
+    readingUnavailable: input.reading === null,
+    identicalOverflow: input.identical.length > MAX_IDENTICAL_MATCHES,
+  };
 }

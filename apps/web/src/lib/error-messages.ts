@@ -25,6 +25,7 @@ const MESSAGES: Record<string, string> = {
   TOO_MANY_RUNNING: "確認中のチェックが 3 件あります。終わるまでお待ちください。",
   NOT_FOUND: "見つかりませんでした。",
   NOT_RETRYABLE: "この候補にはすでに結果が出ています。",
+  FAILED: "処理に失敗しました。時間をおいてもう一度お試しください。",
 };
 
 /** 入力の行ごとのエラーの理由（001 FR-004）。 */
@@ -37,15 +38,16 @@ const INPUT_REASONS: Record<string, string> = {
 };
 
 export function inputReasonMessage(reason: string): string {
-  return INPUT_REASONS[reason] ?? "入力を直してください";
+  return Object.hasOwn(INPUT_REASONS, reason) ? INPUT_REASONS[reason]! : "入力を直してください";
 }
 
 export function errorMessage(
   code: string | undefined | null,
   fallback = "処理に失敗しました。時間をおいてもう一度お試しください。",
 ): string {
-  if (!code) return fallback;
-  return MESSAGES[code] ?? fallback;
+  // Object.hasOwn で、__proto__ などのプロトタイプのキーを引かないようにする。
+  if (!code || !Object.hasOwn(MESSAGES, code)) return fallback;
+  return MESSAGES[code]!;
 }
 
 /** リダイレクト先を、サイト内のパスに限る（オープンリダイレクトを防ぐ）。 */

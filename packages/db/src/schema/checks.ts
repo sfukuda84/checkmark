@@ -104,6 +104,7 @@ export const trademarkResults = pgTable(
     datasetAsOf: date("dataset_as_of", { mode: "string" }),
     checkedAt: timestamp("checked_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
     readingUnavailable: boolean("reading_unavailable").notNull().default(false),
+    identicalOverflow: boolean("identical_overflow").notNull().default(false),
     errorCode: text("error_code", { enum: TRADEMARK_ERROR_CODES }),
   },
   (t) => [check("trademark_results_outcome_check", sql`${t.outcome} in ('identical', 'similar', 'none', 'unknown')`)],

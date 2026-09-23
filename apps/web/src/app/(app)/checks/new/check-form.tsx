@@ -28,6 +28,7 @@ export function CheckForm({
         id="candidates"
         name="candidates"
         rows={8}
+        maxLength={5000}
         defaultValue={defaultCandidates}
         aria-describedby="candidates-help"
         required

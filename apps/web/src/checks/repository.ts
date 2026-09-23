@@ -1,4 +1,4 @@
-import { and, asc, checkCandidates, checks, desc, eq, sql, trademarkResults, type Database } from "@app/db";
+import { and, asc, checkCandidates, checks, desc, eq, inArray, sql, trademarkResults, type Database } from "@app/db";
 
 /** チェックの読み出し。すべて本人（user_id）に限る（FR-030、research R9）。 */
 
@@ -50,18 +50,31 @@ export async function findOwnedCheck(db: Database, userId: string, checkId: stri
 }
 
 export async function listRecentChecks(db: Database, userId: string, limit = 5): Promise<RecentCheck[]> {
-  const rows = await db
-    .select({
-      id: checks.id,
-      createdAt: checks.createdAt,
-      total: sql<number>`count(${checkCandidates.id})::int`,
-      completed: sql<number>`count(${checkCandidates.id}) filter (where ${checkCandidates.status} in ('done', 'unknown'))::int`,
-    })
+  // 先に直近のチェックに絞ってから、候補を数える。
+  const recent = await db
+    .select({ id: checks.id, createdAt: checks.createdAt })
     .from(checks)
-    .innerJoin(checkCandidates, eq(checkCandidates.checkId, checks.id))
     .where(eq(checks.userId, userId))
-    .groupBy(checks.id)
     .orderBy(desc(checks.createdAt))
     .limit(limit);
-  return rows.map((r) => ({ ...r, running: r.completed < r.total }));
+  if (recent.length === 0) return [];
+  const counts = await db
+    .select({
+      checkId: checkCandidates.checkId,
+      total: sql<number>`count(*)::int`,
+      completed: sql<number>`(count(*) filter (where ${checkCandidates.status} in ('done', 'unknown')))::int`,
+    })
+    .from(checkCandidates)
+    .where(
+      inArray(
+        checkCandidates.checkId,
+        recent.map((c) => c.id),
+      ),
+    )
+    .groupBy(checkCandidates.checkId);
+  const byId = new Map(counts.map((c) => [c.checkId, c]));
+  return recent.map((c) => {
+    const n = byId.get(c.id) ?? { total: 0, completed: 0 };
+    return { id: c.id, createdAt: c.createdAt, total: n.total, completed: n.completed, running: n.completed < n.total };
+  });
 }

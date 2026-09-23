@@ -36,7 +36,7 @@ export default async function HomePage() {
             <li key={c.id}>
               <Link href={`/checks/${c.id}`}>{formatDateTime(c.createdAt)} のチェック</Link>
               <span className="muted">
-                （候補 {c.total} 件・{c.running ? `確認中 ${c.completed}/${c.total}` : "完了"}）
+                （{c.completed}/{c.total} 件が完了{c.running ? "・確認中" : ""}）
               </span>
             </li>
           ))}

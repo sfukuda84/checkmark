@@ -90,6 +90,7 @@ export async function markCandidateUnknown(
       datasetAsOf: input.datasetAsOf ?? null,
       checkedAt: input.now,
       readingUnavailable: false,
+      identicalOverflow: false,
       errorCode: input.errorCode,
     };
     await tx

@@ -37,6 +37,14 @@ export interface TrademarkCheckDeps {
 
 const ACTIVE = ["queued", "running"] as const;
 
+/** 再試行に回すための、種類だけを持つ例外。元の例外（cause）は付けない。 */
+export class TrademarkCheckError extends Error {
+  constructor(kind: string) {
+    super(`商標の照合に失敗した（${kind}）`);
+    this.name = "TrademarkCheckError";
+  }
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -103,20 +111,11 @@ export async function handleTrademarkCheck(deps: TrademarkCheckDeps, job: Tradem
       if (!updated) return false;
       const values = {
         outcome: body.outcome,
-        matches: body.matches.map((m) => ({
-          kind: m.kind,
-          applicationNumber: m.applicationNumber,
-          registrationNumber: m.registrationNumber,
-          markText: m.markText,
-          reading: m.reading,
-          holderName: m.holderName,
-          classes: m.classes,
-          status: m.status,
-          score: m.score,
-        })),
+        matches: body.matches,
         datasetAsOf: dataset.asOfDate,
         checkedAt: now(),
         readingUnavailable: body.readingUnavailable,
+        identicalOverflow: body.identicalOverflow,
         errorCode: null,
       };
       await tx
@@ -125,17 +124,17 @@ export async function handleTrademarkCheck(deps: TrademarkCheckDeps, job: Tradem
         .onConflictDoUpdate({ target: trademarkResults.candidateId, set: values });
       return true;
     });
-    logger.info(
-      { candidateId, attempt, ms: Date.now() - started, outcome: body.outcome, matches: body.matches.length, written },
-      "商標の照合を終えた",
-    );
+    // 個別の照合結果（分類）はログに出さない（FR-031、contracts/jobs-and-cli.md §2）。
+    logger.info({ candidateId, attempt, ms: Date.now() - started, matches: body.matches.length }, "商標の照合を終えた");
+    if (!written) logger.info({ candidateId, attempt }, "期限切れかやり直しの後だったので、結果を捨てた");
   } catch (err) {
     const last = job.retryCount >= job.retryLimit;
     // エラーのメッセージには、問い合わせの値（候補名）が入ることがあるため、種類だけを残す（憲章 II）。
     const error =
       err instanceof Error ? { name: err.name, code: (err as { code?: unknown }).code ?? null } : { name: typeof err };
     logger.error({ candidateId, attempt, retryCount: job.retryCount, last, error }, "商標の照合に失敗した");
-    if (!last) throw err;
+    // 投げ直した例外は pg-boss がジョブの output に保存する。問い合わせの値（候補名）を含む元の例外は渡さない（憲章 II）。
+    if (!last) throw new TrademarkCheckError(error.name);
     await markCandidateUnknown(db, { candidateId, attempt, errorCode: "FAILED", now: now() });
   }
 }

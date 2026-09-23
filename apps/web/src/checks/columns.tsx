@@ -62,7 +62,11 @@ function TrademarkCell({ candidate, checkId }: { candidate: CandidateView; check
   const similar = r.matches.filter((m) => m.kind === "similar");
   return (
     <div>
-      {r.outcome === "identical" && <span className="outcome identical">同一の商標あり（{identical.length} 件）</span>}
+      {r.outcome === "identical" && (
+        <span className="outcome identical">
+          同一の商標あり（{identical.length} 件{r.identicalOverflow ? "以上" : ""}）
+        </span>
+      )}
       {r.outcome === "similar" && <span className="outcome similar">類似の商標あり（{similar.length} 件）</span>}
       {r.outcome === "none" && <span className="outcome none">見つからなかった（登録できるとは限りません）</span>}
       {r.outcome === "identical" && similar.length > 0 && (
