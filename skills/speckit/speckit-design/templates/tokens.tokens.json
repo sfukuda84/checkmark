@@ -1,0 +1,48 @@
+{
+  "$description": "デザイントークンの正本（DTCG 2025.10）。値はここだけに書き、DESIGN.md と実装はトークン名で参照する。ダークなどのテーマは tokens.<テーマ>.tokens.json に、ここにあるトークンの上書きだけを書く。",
+  "color": {
+    "$type": "color",
+    "brand": {
+      "primary": { "$value": { "colorSpace": "srgb", "components": [0.114, 0.306, 0.847], "hex": "#1d4ed8" }, "$description": "主要なボタン、リンク" }
+    },
+    "surface": {
+      "default": { "$value": { "colorSpace": "srgb", "components": [1, 1, 1], "hex": "#ffffff" } }
+    },
+    "text": {
+      "default": { "$value": { "colorSpace": "srgb", "components": [0.067, 0.094, 0.153], "hex": "#111827" } }
+    },
+    "status": {
+      "danger": { "$value": { "colorSpace": "srgb", "components": [0.725, 0.110, 0.110], "hex": "#b91c1c" } }
+    },
+    "action": {
+      "primary": { "$value": "{color.brand.primary}", "$description": "主要な操作の色（ブランド色を参照する）" }
+    }
+  },
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "base": { "$value": ["system-ui", "sans-serif"] }
+    },
+    "size": {
+      "$type": "dimension",
+      "body": { "$value": { "value": 1, "unit": "rem" } },
+      "heading": { "$value": { "value": 1.5, "unit": "rem" } }
+    },
+    "weight": {
+      "$type": "fontWeight",
+      "regular": { "$value": 400 },
+      "bold": { "$value": 700 }
+    }
+  },
+  "space": {
+    "$type": "dimension",
+    "1": { "$value": { "value": 4, "unit": "px" } },
+    "2": { "$value": { "value": 8, "unit": "px" } },
+    "3": { "$value": { "value": 16, "unit": "px" } },
+    "4": { "$value": { "value": 24, "unit": "px" } }
+  },
+  "radius": {
+    "$type": "dimension",
+    "default": { "$value": { "value": 6, "unit": "px" } }
+  }
+}

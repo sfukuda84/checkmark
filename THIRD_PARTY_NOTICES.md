@@ -2,9 +2,9 @@
 
 このプロジェクトには、次のソフトウェアに由来するファイルが含まれている。それぞれのライセンスの条件に従い、著作権表示と許諾文をここに載せる。
 
-## my-speckit-scaffold
+## speckit
 
-- 出典: https://github.com/sfukuda84/my-speckit-scaffold
+- 出典: https://github.com/sfukuda84/speckit
 - 対象: `skills/speckit/` の追加スキル（`speckit-bootstrap`、`speckit-architecture`、`speckit-common-feature`、`speckit-nfr-feature`、`speckit-concept-2-feature`、`speckit-feature`、`speckit-coding`、`speckit-all`、`speckit-worktree`、`speckit-review`、`speckit-project`、`speckit-presentation`）、`.kiro/steering/`、`CLAUDE.md`、`AGENTS.md`、`GEMINI.md`、`opencode.json`、`MANUAL.md` など、scaffold から取り込んだファイル
 
 ```text

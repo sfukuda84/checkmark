@@ -1,6 +1,6 @@
-> この文書は、プロジェクトの作成または更新に使った scaffold（https://github.com/sfukuda84/my-speckit-scaffold、main、3a4f74d）の README の写しである。scaffold 自体の開発に関する節（「scaffold の更新」など）は、このプロジェクトには当てはまらない。
+> この文書は、プロジェクトの作成または更新に使った scaffold（https://github.com/sfukuda84/speckit、main、22af36b）の README の写しである。scaffold 自体の開発に関する節（「scaffold の更新」など）は、このプロジェクトには当てはまらない。
 
-# my-speckit-scaffold
+# speckit
 
 [GitHub Spec Kit](https://github.com/github/spec-kit) による仕様駆動開発（Spec-Driven Development）を、複数の AI エージェントで同じ手順で進めるためのプロジェクト scaffold。
 
@@ -31,7 +31,7 @@
 ### 1. コマンドを入れる（初回だけ）
 
 ```bash
-uv tool install "git+https://github.com/sfukuda84/my-speckit-scaffold#subdirectory=tool"
+uv tool install "git+https://github.com/sfukuda84/speckit#subdirectory=tool"
 ```
 
 更新は `uv tool upgrade new-speckit-project` で行う。
@@ -42,6 +42,8 @@ uv tool install "git+https://github.com/sfukuda84/my-speckit-scaffold#subdirecto
 new-speckit-project ~/work/my-app                      # コアコンセプトを対話で入力する
 new-speckit-project ~/work/my-app -m "コアコンセプト"   # 入力を省く
 new-speckit-project ~/work/my-app --agent codex        # 使うエージェントを選ぶ（既定は claude）
+new-speckit-project ~/work/my-app -m "…" --auto        # 立ち上げを質問なしで進める（--oneshot は最初に一度だけ質問する）
+new-speckit-project ~/work/my-app -m "…" --cloud me/my-app  # GitHub に push し、Claude Code のクラウドセッションで立ち上げる
 ```
 
 コマンドは次を行う。
@@ -51,13 +53,20 @@ new-speckit-project ~/work/my-app --agent codex        # 使うエージェン�
 3. コアコンセプトを `docs/concept/core-concept.md` に保存し、`git init` と初回コミットを行う。scaffold の README は `docs/speckit-scaffold.md` に移る。
 4. 指定のエージェントを対話モードで起動し、`speckit-bootstrap` を始める。
 
-オプションの一覧は [tool/README.md](https://github.com/sfukuda84/my-speckit-scaffold/blob/main/tool/README.md) を参照する。
+`--cloud <owner>/<name>` を付けたときだけ、4 の代わりに次を行う。付けなければ、これまでと同じ動作である。
+
+1. GitHub に非公開のリポジトリを作り、`main` を push する（空の既存リポジトリを指定したときは、そこに push する）。[GitHub CLI（gh）](https://cli.github.com/) とログインが必要である。
+2. `claude --cloud` で Claude Code のクラウドセッションを作り、`speckit-bootstrap` を始める。`--auto` も `--oneshot` も付けなければ、`--oneshot` で進める。成果はセッションの作業ブランチに push されるので、PR で `main` に取り込む。
+
+オプションの一覧は [tool/README.md](https://github.com/sfukuda84/speckit/blob/main/tool/README.md) を参照する。
 
 作成済みのプロジェクトに scaffold の新しい版を取り込むときは、プロジェクトの `main` で `new-speckit-project update` を実行する（手で直したファイルは上書きせず、新しい版を `.scaffold-new/` に置く。詳しくは [MANUAL.md](MANUAL.md) の §9）。
 
 ### 3. 立ち上げ（speckit-bootstrap）
 
 エージェントとの対話で、次の順に作る。各ステップが終わるとコミットされ、中断しても `speckit-bootstrap` を再実行すれば続きから再開できる。
+
+`--auto` を付けると、質問せずにエージェントの推奨案を採用して進める。`--oneshot` を付けると、最初に一度だけ、予算や MVP の範囲など影響の大きい論点をまとめて質問し、以降は自動で進める。どちらも、自動で決めたことを仮定として `docs/auto-decisions.md` に記録する。
 
 | ステップ | スキル | 成果物 |
 |---|---|---|
@@ -66,11 +75,16 @@ new-speckit-project ~/work/my-app --agent codex        # 使うエージェン�
 | B3 | `speckit-constitution` | `.specify/memory/constitution.md` |
 | B4 | `speckit-common-feature` | `docs/feature/000-app-basic.md`（認証、メール送信などの共通基盤） |
 | B5 | `speckit-nfr-feature` | `docs/nfr.md`（全機能が守る非機能要件）と `docs/feature/999-app-nfr.md`（監視、バックアップ、CI/CD などの運用基盤） |
-| B6 | （検証） | 機能一式の整合の確認 |
+| B5-1 | `speckit-design` | `docs/design/`（見た目の `DESIGN.md`、振る舞いの `EXPERIENCE.md`、DTCG 形式のトークン）。`--with-mock` で Claude Design のモックも作る |
+| B6 | （検証） | 機能一式とデザインの要件の整合の確認 |
 
 ### 4. 仕様化と実装
 
 `speckit-all` を引数なしで実行すると、`000-app-basic` から 1 件ずつ、仕様から実装までを通して進める。工程を分けたい場合は `speckit-feature`（仕様）と `speckit-coding`（実装）を使う（→「worktree を使った実行」）。
+
+### 既存のプロジェクトに取り込む
+
+speckit を使わずに始めたプロジェクトには、`new-speckit-project adopt [プロジェクト]` で scaffold の持ち物を取り込む（既存のファイルは上書きせず、コミットもしない）。その後、`speckit-bootstrap --adopt` で既存の資料とコードから成果物を作る。詳しくは [MANUAL.md](MANUAL.md) の「既存のプロジェクトに取り込む」。
 
 ### 5. 事業計画（任意）
 
@@ -103,15 +117,23 @@ new-speckit-project ~/work/my-app --agent codex        # 使うエージェン�
 ├── .agents/skills/           # → skills/speckit/* へのシンボリックリンク（Codex CLI / Antigravity）
 ├── .opencode/commands/       # opencode 用の Spec Kit コマンド（Specify CLI が生成）
 ├── .specify/                 # Spec Kit の憲章、テンプレート、Python スクリプト（Specify CLI が生成）
+│   └── commands.json         #   開発コマンドの正本（worktree_helper.py commands set が作る）
 ├── skills/speckit/           # 共有スキルの本体
 ├── docs/
 │   ├── concept/              # コアコンセプト（入力）と backlog.md
 │   ├── feature/              # 機能概要と着手順序
+│   ├── design/               # デザインの共通の決め事（speckit-design が作る）
 │   ├── architecture.md       # 構成と技術スタック（speckit-architecture が作る）
 │   ├── project.md            # 事業計画（speckit-project が作る）
 │   ├── presentation/         # 企画書（speckit-presentation が作る）
-│   └── nfr.md                # 非機能要件（speckit-nfr-feature が作る）
+│   ├── nfr.md                # 非機能要件（speckit-nfr-feature が作る）
+│   ├── adopt-plan.md         # 既存のプロジェクトへの取り込みの計画（speckit-bootstrap --adopt が作る）
+│   └── pitfalls.md           # 落とし穴の受け箱（10 件・3 機能で棚卸しし、正本に移すか消す）
 ├── specs/                    # フィーチャーごとの仕様・設計・タスク（Spec Kit の成果物）
+│   └── <NNN-name>/           #   spec.md、plan.md、tasks.md、ui.md などに加えて:
+│       ├── decisions.md      #     推奨案で決めたことの台帳（S8 の終わりにまとめて確かめる）
+│       ├── reviews/          #     review-<回>.md（レビューの記録）、backlog.md（送った LOW）
+│       └── handover.md       #     作業中のメモ（feature ブランチだけ。finish が消す）
 ├── .github/workflows/        # scaffold 自体のテスト（新規プロジェクトには含まれない）
 └── tool/                     # new-speckit-project コマンドとテスト（新規プロジェクトには含まれない）
 ```
@@ -151,18 +173,19 @@ steering のファイルを追加したときは、`CLAUDE.md`、`GEMINI.md`、`
 
 | スキル | 内容 |
 |---|---|
-| `speckit-bootstrap` | 新規プロジェクトの立ち上げ（B1〜B6）を通しで行う |
+| `speckit-bootstrap` | 新規プロジェクトの立ち上げ（B1〜B6、B5-1 を含む）を通しで行う。ステップの完了は `scripts/bootstrap.py checkpoint` で記録し、B6 で `doctor` も実行する |
 | `speckit-concept-2-feature` | `docs/concept/` を、`speckit-specify` に 1 回で渡せる単位の機能概要（`docs/feature/`）に仕分ける。共通機能は機能にせず、共通基盤の候補として記録する |
 | `speckit-architecture` | 機能一覧を実現する構成と技術スタックを、3 系統の比較から選んで `docs/architecture.md` に書く |
 | `speckit-common-feature` | 認証やメール送信などの共通機能を `docs/feature/000-app-basic.md` に定義する |
 | `speckit-project` | 事業計画（市場、価格と収支、KPI、スケジュール、体制、リスク）を `docs/project.md` に定義する。収支は `plan.py` で計算・検算する |
 | `speckit-presentation` | 成果物から、読み手に合わせた企画書（pptx）を作る。内容は `slides.md`、見た目は `design.yaml`、変換は `build_pptx.py` |
 | `speckit-nfr-feature` | 非機能要件を `docs/nfr.md`（横断要件）と `docs/feature/999-app-nfr.md`（運用基盤）に定義する |
-| `speckit-feature` | 仕様工程。specify → clarify ×2 → plan → tasks → analyze ×3 を行い、`main` にマージする |
-| `speckit-coding` | 実装工程。implement → converge → レビュー ×2 を行い、`main` にマージする |
+| `speckit-design` | デザインの共通の決め事を `docs/design/` に定義し、機能ごとの画面仕様（`ui.md`）の書き方を定める。`--with-mock` で Claude Design のモックも作る |
+| `speckit-feature` | 仕様工程。specify → clarify ×2 → 画面仕様 → plan → tasks → analyze ×3 を行い、`main` にマージする（回数は機能の重さで減る） |
+| `speckit-coding` | 実装工程。implement → converge → レビュー ×2 を行い、`main` にマージする（軽の機能はレビュー 1 回）。`--until "Phase N"` で一部だけを先にマージし、`--deferred` で `[後]` のタスクを片付ける |
 | `speckit-all` | 仕様工程と実装工程を 1 つの worktree で通して行い、最後に `main` にマージする |
-| `speckit-worktree` | 上の 3 スキルが使う worktree の管理と、共通の実行規則。進捗の確認（`status`）や中止（`abort`）にも使う |
-| `speckit-review` | Standards 軸と Spec 軸の 2 軸でコード変更をレビューする |
+| `speckit-worktree` | 上の 3 スキルが使う worktree の管理と、共通の実行規則。進捗の確認（`status`）、再開の要約（`resume`）、残っている人のタスク・後の作業の確認（`human-tasks`・`deferred-tasks`）、状態の同期（`sync-status`）、中止（`abort`）、開発コマンド（`commands`）、環境の診断（`doctor`）、落とし穴の棚卸し（`pitfalls`）にも使う |
+| `speckit-review` | Standards 軸と Spec 軸の 2 軸でコード変更をレビューする。1 軸 15 件までは LOW も含めて全件直し、超えた分の LOW は `reviews/backlog.md` に送る。2 回目で CRITICAL・HIGH が 0 件なら打ち切る |
 
 機能の番号のうち、`000` は共通基盤、`999` は運用基盤の予約番号である。コアドメインの機能は `001` から振る。
 
@@ -180,28 +203,46 @@ steering のファイルを追加したときは、`CLAUDE.md`、`GEMINI.md`、`
 
 ## worktree を使った実行（speckit-feature / speckit-coding / speckit-all）
 
-フィーチャーごとに `.worktrees/<NNN-name>`（ブランチ `feature/<NNN-name>`）で作業し、ステップが終わるたびにコミットする。コミットには trailer `Speckit-Step: <ステップ>` と `Speckit-Feature: <NNN-name>` を付けて進捗を記録する。着手順は `docs/feature/spec_order.md` の並びに従い、機能ファイルの状態欄は S2 で `spec化済み`、S11 で `完了` に自動で更新される。
+フィーチャーごとに `.worktrees/<NNN-name>`（ブランチ `feature/<NNN-name>`）で作業し、ステップが終わるたびにコミットする。コミットには trailer `Speckit-Step: <ステップ>` と `Speckit-Feature: <NNN-name>` を付けて進捗を記録する。着手順は `docs/feature/spec_order.md` の並びに従い、機能ファイルの状態欄は S2 で `spec化済み`、S11 で `完了`（`[人]` のタスクが残っていれば `人の作業待ち`、`[後]` だけなら `完了（後の作業 N 件）`）に自動で更新される。
 
 | ステップ | 内容 | 担当 |
 |---|---|---|
-| S1 | 準備。worktree があれば再利用し、なければ `main` から作る | 3 スキル共通 |
-| S2〜S7-3 | specify、clarify ×2、plan、tasks、analyze ×3 | speckit-feature |
-| S8〜S11 | implement、converge、レビュー ×2 | speckit-coding |
+| S1 | 準備。worktree があれば再利用し、なければ `main` から作る。機能の重さ（`WEIGHT`）と、欠けている成果物（`MISSING_ARTIFACTS`）も出す | 3 スキル共通 |
+| S2〜S7-3 | specify、clarify ×2、画面仕様（S4-1）、plan、tasks、analyze ×3（回数は機能の重さで減る） | speckit-feature |
+| S8〜S11 | implement、converge、レビュー ×2（軽の機能は 1 回） | speckit-coding |
 | S12 | `main` への `--no-ff` マージと、worktree・ブランチの削除 | 3 スキル共通 |
+
+- **担当への任せ方**: サブエージェントが使えるときは、親（実行中のエージェント）は質問・採否・`checkpoint`・マージ・検証の再実行を持ち、実装（Phase ごと）・収束・軸ごとのレビュー・修正を担当に任せる。レビューは軸ごとに文脈を持たない担当が独立に審査し、親が裏を取って採否を決める。記録は `specs/<NNN-name>/reviews/review-<回>.md`。依頼文の雛形は `skills/speckit/speckit-worktree/references/delegation.md`。
+- **開発コマンドと診断**: テスト・リンター・ビルドなどのコマンドは `.specify/commands.json` を正本にする（`worktree_helper.py commands set test 'npm test'` で記録し、`commands get test` で読む）。`worktree_helper.py doctor` は、Python、マージ先のブランチ、`.gitignore`、開発コマンドが PATH にあるか、スキルのリンク、憲章、steering を診断する。
+- **引き継ぎ**: 引き継ぎの文書は正本の写しにしない。再開するときは `worktree_helper.py resume <機能>` が、次のステップ、残りのタスク、確かめていない判断を正本から生成する。手で書くのは、作業中のメモ（`specs/<NNN-name>/handover.md`。feature ブランチだけに置き、`finish` が消す）と、落とし穴の受け箱（`docs/pitfalls.md`。10 件か 3 機能で棚卸しし、steering などに移すか消す）だけである。
+- **質問のまとめ方**: 質問はステップごとに出さず、3 か所にまとめる。仕様の前（窓 1）と計画の前（窓 2）は、それぞれ最大 3 回、1 回に最大 4 問（1 つの窓で最大 12 問）。それ以外に推奨案で決めたことは `specs/<NNN-name>/decisions.md` に記録し、S8 の終わりに 1 回で確かめる（件数の上限なし）。
+- **機能の重さ**: 機能ファイルのヘッダの `**重さ**`（`軽` / `標準` / `重`）で、clarify・画面仕様・analyze・レビューの回数が変わる（軽は clarify 1 回・analyze 1 回・レビュー 1 回、標準は analyze 2 回、重は上の表のとおり）。省いたステップは `checkpoint --skipped` で記録するので、再開の判定は変わらない。引数 `--weight 軽|標準|重` で上書きできる。判定の規則は `speckit-concept-2-feature` の「重さ」、工程の表は `speckit-worktree` の §2 にある。
 
 - **単独で実行したとき**: `speckit-feature` と `speckit-coding` は、それぞれ自分の工程の最後に `main` へマージする。`speckit-coding` は、マージ済みの `main` から新しく worktree を作る。
 - **`speckit-all` のとき**: 仕様工程の後もマージせず、同じ worktree のまま実装工程に進む。
 - **中断したとき**: worktree が残っていれば、どのスキルからでも続きのステップから再開できる。エージェントを変えて再開してもよい。
 - **引数**: 番号（`1`、`002`）、範囲（`002-005`）、`all`、省略（次の未着手）を受け付ける。複数を指定したときは 1 件ずつ直列に進める。
-- **片付け（S12）**: リポジトリのルートで実行する。実装工程では、`tasks.md` に未完了のタスクが残っているとマージの前に止まり、残してよいかを確認する。
+- **画面仕様（S4-1）**: clarify の後、plan の前に、`specs/<NNN-name>/ui.md` に画面と要件の対応、画面ごとの表示・操作・状態を書く。画面のない機能は、重なら「UI なし」と記録して進み、軽・標準なら省く。`--with-mock` を付けると、Claude Design（Claude Code の `/design`）で主な画面のモックも作って案を選ぶ。使えない環境（ほかのエージェントなど）では、テキストの仕様だけで進む。S4-1 を足す前に仕様化した機能には `ui.md` がないので、実装工程の S1 で `MISSING_ARTIFACTS: ui.md` が出て、S8 の前に作る。
+- **自動モード（`--auto`）**: 質問せずに推奨案を採用して進める。自動で決めたことは `specs/<NNN-name>/auto-decisions.md` に記録する。マージの競合や中止などでは止まり、範囲指定ならその機能を飛ばして次に進む（詳細は `speckit-worktree` の §6）。
+- **片付け（S12）**: リポジトリのルートで実行する。実装工程では、`tasks.md` に未完了のタスク（`[人]`・`[後]` 以外）が残っているとマージの前に止まり、残してよいかを確認する。作業中のメモ（`handover.md`）はマージの前に消し、中身を表示する（`HANDOVER_REMOVED`）。落とし穴の棚卸しが要るときは `PITFALLS_TRIAGE` が出る。
+- **人が行うタスク（`[人]`）**: 契約や管理画面での操作など、AI が行えないタスクには `tasks.md` で `[人]` を付ける（規則は `.kiro/steering/spec-driven-development.md` の「人が行うタスク」）。AI は実行も完了の記録もしない。未完了のタスクが `[人]` だけなら片付け（S12）で止まらずにマージし、状態は `人の作業待ち` になる。残りは `main` で片付け、`sync-status` で `完了` にする。
+- **後の段階に回すタスク（`[後]`）**: 仕様で「後の段階で行う」と決めたタスクには `[後]` を付ける（規則は steering の「後の段階に回すタスク」）。未完了が `[人]`・`[後]` だけなら片付け（S12）で止まらずにマージし、状態は `完了（後の作業 N 件）` になる。その段階が来たら `speckit-coding <機能> --deferred [T045,T046]` で、専用の worktree（`.worktrees/<機能>-deferred`）で片付ける。残りは `deferred-tasks` で一覧する。
+- **一部だけを先にマージする**: ほかの機能の前提になる一部の Phase だけを、`speckit-coding <機能> --until "Phase N"` で実装し、`finish --partial` で `main` に入れる（件名 `merge(<機能>): partial`。進捗は進めない）。残りは同じ `speckit-coding <機能>` で S8 から続ける。
 
 進捗の確認と中止は、ヘルパースクリプトでも行える（Windows で `python3` がない場合は `python` か `py -3`）。
 
 ```bash
 H=".claude/skills/speckit-worktree/scripts/worktree_helper.py"
-python3 $H status                 # 全フィーチャーの仕様・実装・worktree の状況
+python3 $H status                 # 全フィーチャーの仕様・実装・worktree の状況（落とし穴の棚卸しも）
+python3 $H resume 002             # 再開するときの要約（次のステップ、残りのタスク、確かめていない判断、作業中のメモ）
 python3 $H next --phase all       # 次に着手すべきフィーチャー
-python3 $H abort 002              # 破棄する対象の確認（実際に破棄するには --yes）
+python3 $H human-tasks            # 残っている人のタスク（[人]）
+python3 $H deferred-tasks         # 残っている後の段階のタスク（[後]）
+python3 $H sync-status 002        # 人のタスクを片付けた後、main で状態を tasks.md に合わせる
+python3 $H commands               # 開発コマンドの一覧（set <key> '<command>' で記録、get <key> で読む）
+python3 $H doctor                 # 環境と設定の診断
+python3 $H pitfalls               # 落とし穴の受け箱の件数と、棚卸しが要る項目
+python3 $H abort 002              # 破棄する対象の確認（実際に破棄するには --yes。後の作業なら --phase deferred）
 ```
 
 Windows の PowerShell では次のようになる。
@@ -230,7 +271,7 @@ py -3 $H status
   }
   ```
 
-- テストは `tool/` で実行する。worktree 管理のスクリプト、`validate.py`、`plan.py`、`build_pptx.py`、`new-speckit-project` のテストが含まれる。pptx の生成のテストは python-pptx があるときだけ動くので、uv で依存を足して実行する。
+- テストは `tool/` で実行する。worktree 管理のスクリプト、立ち上げの進捗の記録（`bootstrap.py`）、`validate.py`、`validate_design.py`、`plan.py`、`build_pptx.py`、`new-speckit-project` のテストが含まれる。pptx の生成のテストは python-pptx があるときだけ動くので、uv で依存を足して実行する。
 
   ```bash
   cd tool && uv run --no-project --with python-pptx --with pyyaml python -m unittest discover -s tests
@@ -268,3 +309,9 @@ py -3 $H status
 - **opencode**: `.claude/skills/` と `.agents/skills/` の両方から同じスキルを読み込むため、起動時に `duplicate skill name` の警告が出る。動作には影響しない。
 - **`.worktrees/`**: `.gitignore` で除外している。除外を外すと、worktree 管理のスクリプトが S1 で止まる。
 - **既定のブランチ**: スクリプトは既定のブランチを `main` とみなす。別の名前のリポジトリで使うときは、環境変数 `SPECKIT_MAIN_BRANCH` にその名前を指定する。
+- **Claude Code のクラウドセッション**: スキルは claude.ai/code や `claude --cloud` のクラウドセッションでも動く。ただし次の制約がある。ローカルで使うときは、これまでどおりに動く（判定には、クラウドセッションだけに設定される `CLAUDE_CODE_REMOTE=true` を使う）。詳しくは [MANUAL.md](MANUAL.md) の §4「クラウドセッションで立ち上げる」と、steering の「Claude Code のクラウドセッション」を参照する。
+  - push できるのはセッションの作業ブランチだけなので、worktree のスキルは作業ブランチにマージして push する。`main` へは PR で取り込む。
+  - VM が回収されると、push していないものは消えるので、1 つのフィーチャーは 1 つのセッションで最後まで進める。
+  - 質問は `--auto` か `--oneshot` で減らすのが安全である。
+  - 出典付きの Web 調査は、WebFetch が止められると弱くなる。
+  - `.github/workflows/` の変更は push を拒否されることがある。

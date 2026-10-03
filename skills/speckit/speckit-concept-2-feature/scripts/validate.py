@@ -6,6 +6,8 @@
     python3 validate.py <docs/feature のパス> --graph   # 被参照数と段階分けも表示
     python3 validate.py <docs/feature のパス> --backlog-file <backlog.md のパス>
         # backlog.md は省略時、docs/feature と同階層の concept/（なければ conpect/）から探す
+    # README.md の「メタ文書（機能ファイルではない）」の表に載せたファイル（取り込みで残した元の資料など）は、
+    # 機能ファイルとして検証しない
 
 終了コード: エラーが 1 件以上なら 1、なければ 0（警告は終了コードに影響しない）。
 """
@@ -25,7 +27,7 @@ REQUIRED_SECTIONS = [
     "## 根拠",
     "## /speckit-specify に渡す記述案",
 ]
-STATUS_RE = re.compile(r"^(未着手|実装済み（spec なし）|一部実装（spec なし）|spec化済み（specs/[^）]+）|完了)$")
+STATUS_RE = re.compile(r"^(未着手|実装済み（spec なし）|一部実装（spec なし）|spec化済み（specs/[^）]+）|人の作業待ち（specs/[^）]+）|完了|完了（後の作業 \d+ 件）)$")
 IMPLEMENTED_STATUSES = ("実装済み（spec なし）", "一部実装（spec なし）")
 CATEGORIES = ("MVP", "拡張")
 NONE_DEPS = {"—", "-", "なし", ""}
@@ -65,8 +67,11 @@ def parse_deps(value: str) -> list[str]:
     return [d.strip() for d in value.split(",") if d.strip()]
 
 
+WEIGHTS = ("軽", "標準", "重")
+
+
 def parse_header(path: Path, text: str) -> dict | None:
-    """`**状態**: … | **区分**: … | **想定順序**: … | **依存**: …` 行を読む。"""
+    """`**状態**: … | **区分**: … | **想定順序**: … | **依存**: … | **重さ**: …` 行を読む（重さは任意）。"""
     line = next((l for l in text.splitlines() if l.startswith("**状態**")), None)
     if line is None:
         err(f"{path.name}: ヘッダ行（**状態** で始まる行）がない")
@@ -82,11 +87,16 @@ def parse_header(path: Path, text: str) -> dict | None:
     if any(k not in fields for k in ("状態", "区分", "想定順序", "依存")):
         return None
     if not STATUS_RE.match(fields["状態"]):
-        err(f"{path.name}: 状態「{fields['状態']}」は 未着手 / 実装済み（spec なし） / 一部実装（spec なし） / spec化済み（specs/…） / 完了 のいずれかにする")
+        err(f"{path.name}: 状態「{fields['状態']}」は 未着手 / 実装済み（spec なし） / 一部実装（spec なし） / spec化済み（specs/…） / 人の作業待ち（specs/…） / 完了 / 完了（後の作業 N 件） のいずれかにする")
     if fields["区分"] not in CATEGORIES:
         err(f"{path.name}: 区分「{fields['区分']}」は MVP / 拡張 のいずれかにする")
     if not fields["想定順序"].isdigit():
         err(f"{path.name}: 想定順序「{fields['想定順序']}」が整数でない")
+    # 機能の重さ（軽 / 標準 / 重）。工程の重さを決める（speckit-worktree の「機能の重さ」）。欠けは標準として扱う
+    if "重さ" not in fields:
+        warn(f"{path.name}: ヘッダ行に **重さ** がない（標準として扱う。軽 / 標準 / 重 のどれかを書く）")
+    elif fields["重さ"] not in WEIGHTS:
+        err(f"{path.name}: 重さ「{fields['重さ']}」は 軽 / 標準 / 重 のいずれかにする")
     return fields
 
 
@@ -105,12 +115,35 @@ def section_body(text: str, heading: str) -> str:
 
 
 all_slugs: set[str] = set()
+META_SECTION = "## メタ文書"
+LOCAL_LINK_RE = re.compile(r"\]\((?:\./)?([^/()#\s]+\.md)\)")
+
+
+def listed_meta_files(feature_dir: Path) -> set[str]:
+    """README.md の「メタ文書（機能ファイルではない）」の節に載っている、docs/feature 直下のファイル名。
+
+    取り込み（--adopt）で残した元の資料（例: 番号のない mvp1.md）をこの表に載せれば、機能ファイルとして検証しない。
+    """
+    path = feature_dir / "README.md"
+    if not path.exists():
+        return set()
+    names: set[str] = set()
+    inside = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            inside = line.startswith(META_SECTION)
+            continue
+        if inside and line.lstrip().startswith("|"):
+            first_cell = line.strip().strip("|").split("|")[0]
+            names.update(LOCAL_LINK_RE.findall(first_cell))
+    return names
 
 
 def load_features(feature_dir: Path) -> dict[str, dict]:
     features = {}
+    meta = META_FILES | listed_meta_files(feature_dir)
     for path in sorted(feature_dir.glob("*.md")):
-        if path.name in META_FILES:
+        if path.name in meta:
             continue
         slug = path.stem
         all_slugs.add(slug)

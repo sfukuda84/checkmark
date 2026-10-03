@@ -1,8 +1,8 @@
 ---
 title: <企画書の題名>
 audience: internal          # internal（社内の承認）/ investor（投資家）/ customer（顧客・パートナー）
-purpose: <この資料で得たいこと。例: MVP の開発と初年度の予算の承認>
-duration: <発表時間。例: 15 分>
+purpose: <この資料で得たいこと。例：MVP の開発と初年度の予算の承認>
+duration: <発表時間。例：15 分>
 date: <YYYY-MM-DD>
 author: <作成者>
 design: ../design.yaml

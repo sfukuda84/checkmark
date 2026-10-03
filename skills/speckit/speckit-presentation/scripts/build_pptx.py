@@ -101,7 +101,10 @@ def split_front_matter(text: str) -> tuple[dict, str]:
         raise BuildError("front matter の終わりの --- がない")
     import yaml  # 遅延 import（解析だけのテストで PyYAML を要らなくするため、front matter がある場合だけ使う）
 
-    meta = yaml.safe_load(text[4:end]) or {}
+    try:
+        meta = yaml.safe_load(text[4:end]) or {}
+    except yaml.YAMLError as e:
+        raise BuildError(f"front matter を YAML として読めない（値の中の「: 」は「：」にするか、値を引用符で囲む）: {e}") from e
     if not isinstance(meta, dict):
         raise BuildError("front matter は key: value の形にする")
     return meta, text[end + 5:]

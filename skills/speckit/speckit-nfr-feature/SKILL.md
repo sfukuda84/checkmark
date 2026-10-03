@@ -96,7 +96,7 @@ $ARGUMENTS
 ### ステップ 5: 書き出し
 
 - `docs/nfr.md` を [templates/nfr.md](./templates/nfr.md) に沿って書く。
-- `999-app-nfr.md` を書く。ヘッダは `**状態**: 未着手 | **区分**: MVP | **想定順序**: 999 | **依存**: 000-app-basic`（000 がなければ `—`）とする。「前提・設計原則との関係」に `docs/nfr.md` の対応する ID を書く。
+- `999-app-nfr.md` を書く。ヘッダは `**状態**: 未着手 | **区分**: MVP | **想定順序**: 999 | **依存**: 000-app-basic | **重さ**: 標準`（000 がなければ依存は `—`。バックアップと復元など保存するデータの扱いに触れるなら重さは `重`。`speckit-concept-2-feature` の「重さ」）とする。「前提・設計原則との関係」に `docs/nfr.md` の対応する ID を書く。
 - `README.md` の一覧と `spec_order.md` に 999 の行を足す。
 - 憲章に `docs/nfr.md` を参照する条項がなければ、`speckit-constitution` の手順で足す（例: 「すべての機能は docs/nfr.md の横断要件を満たす。plan.md の憲章チェックで確認する」）。
 
